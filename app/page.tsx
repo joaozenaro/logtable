@@ -1,5 +1,9 @@
+import { Button } from "@mui/material";
+
 export default function Home() {
-  return <main className="flex-1 grid place-items-center">
-    <h1>Hello, world!</h1>
-  </main>
+  return (
+    <main className="flex-1 grid place-items-center">
+      <Button variant="contained">Hello, world!</Button>
+    </main>
+  )
 }
