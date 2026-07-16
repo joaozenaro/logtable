@@ -14,7 +14,14 @@ const DayCalendar = dynamic(
 );
 
 export default function Home() {
-  const { entries, setEntries, totalTime } = useTimeEntries();
+  const {
+    entries,
+    updateEntries,
+    totalTime,
+    selectedDate,
+    setSelectedDate,
+    isLoading,
+  } = useTimeEntries();
 
   const { data: session } = authClient.useSession();
 
@@ -44,7 +51,7 @@ export default function Home() {
       >
         {/* Calendar */}
         <Box sx={{ flex: 0 }}>
-          <DayCalendar />
+          <DayCalendar value={selectedDate} onChange={setSelectedDate} />
         </Box>
 
         {/* Spacer */}
@@ -96,7 +103,7 @@ export default function Home() {
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 2,
+            justifyContent: "space-between",
             px: 3,
             py: 1.5,
             borderBottom: "1px solid",
@@ -108,9 +115,17 @@ export default function Home() {
             variant="h5"
             sx={{
               backgroundClip: "text",
+              fontWeight: 600,
             }}
           >
             Time Tracker
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            color="text.secondary"
+            sx={{ fontWeight: 500 }}
+          >
+            {selectedDate.format("dddd, MMMM D, YYYY")}
           </Typography>
         </Box>
 
@@ -118,8 +133,9 @@ export default function Home() {
         <Box sx={{ flex: 1, overflow: "hidden", p: 2 }}>
           <TimeGrid
             entries={entries}
-            setEntries={setEntries}
+            updateEntries={updateEntries}
             totalTime={totalTime}
+            isLoading={isLoading}
           />
         </Box>
       </Box>

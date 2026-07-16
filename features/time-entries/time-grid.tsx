@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef } from "react";
-import { Box, Typography, Skeleton } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Box, Typography, Skeleton, LinearProgress } from "@mui/material";
 import DOMPurify from "dompurify";
 import type { HotTableRef } from "@handsontable/react-wrapper";
 import {
@@ -16,7 +16,7 @@ import {
   registerValidator,
   autocompleteValidator,
 } from "handsontable/validators";
-import { CopyPaste, StretchColumns } from "handsontable/plugins";
+import { CopyPaste, StretchColumns, UndoRedo } from "handsontable/plugins";
 import { ManualRowMove } from "handsontable/plugins/manualRowMove";
 import { registerPlugin } from "handsontable/plugins/registry";
 import type { CellChange, ChangeSource } from "handsontable/base";
@@ -28,6 +28,7 @@ registerCellType(TextCellType);
 registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(CopyPaste);
+registerPlugin(UndoRedo);
 
 // Autocomplete
 registerCellType(AutocompleteCellType);
@@ -48,16 +49,37 @@ const HotTable = dynamic(
 
 interface TimeGridProps {
   entries: TimeEntry[];
-  setEntries: React.Dispatch<React.SetStateAction<TimeEntry[]>>;
+  updateEntries: (
+    newEntries: TimeEntry[] | ((prev: TimeEntry[]) => TimeEntry[]),
+    timeSpentChanged?: boolean,
+  ) => void;
   totalTime: string;
+  isLoading?: boolean;
 }
 
 export default function TimeGrid({
   entries,
-  setEntries,
+  updateEntries,
   totalTime,
+  isLoading = false,
 }: TimeGridProps) {
   const hotRef = useRef<HotTableRef>(null);
+  const [showLoader, setShowLoader] = useState(false);
+
+  // Debounce the loading spinner to prevent annoying flashes on fast local DB reads
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setShowLoader(true);
+      }, 180); // 180ms delay
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(() => {
+        setShowLoader(false);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -72,6 +94,8 @@ export default function TimeGrid({
         hot.selectCell(newRowIndex, 0);
       } else if (e.shiftKey && e.key === "Backspace") {
         e.preventDefault();
+        if (hot.countRows() <= 1) return;
+
         const selected = hot.getSelectedRangeLast();
         if (!selected) return;
 
@@ -88,17 +112,44 @@ export default function TimeGrid({
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [setEntries]);
+  }, []);
 
   return (
     <Box
-      sx={{ display: "flex", flexDirection: "column", height: "100%", gap: 1 }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        gap: 1,
+        position: "relative",
+      }}
     >
+      {showLoader && (
+        <LinearProgress
+          color="primary"
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            zIndex: 10,
+          }}
+        />
+      )}
       <Box sx={{ display: "flex", gap: 2, justifyContent: "end" }}>
         <Shortcut combo={["Ctrl", "Enter"]} hint="Add a new row" />
         <Shortcut combo={["Shift", "Backspace"]} hint="Remove the last row" />
       </Box>
-      <Box sx={{ flex: 1, overflow: "auto" }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflow: "auto",
+          opacity: showLoader ? 0.65 : 1,
+          transition: "opacity 0.2s ease-in-out",
+          pointerEvents: showLoader ? "none" : "auto",
+        }}
+      >
         <HotTable
           ref={hotRef}
           data={entries}
@@ -121,9 +172,23 @@ export default function TimeGrid({
           allowInsertColumn={false}
           allowRemoveColumn={false}
           sanitizer={(html: string) => DOMPurify.sanitize(html)}
+          beforeRemoveRow={(_index: number, amount: number) => {
+            const hot = hotRef.current?.hotInstance;
+            if (!hot) return;
+            if (hot.countRows() - amount <= 0) {
+              return false;
+            }
+          }}
           afterChange={(changes: CellChange[] | null, source: ChangeSource) => {
             if (!changes || source === "loadData") return;
-            setEntries((prev) => {
+
+            // Determine if time spent was changed
+            const timeSpentChanged = changes.some(
+              ([, prop, oldValue, newValue]) =>
+                prop === "timeSpent" && oldValue !== newValue,
+            );
+
+            updateEntries((prev) => {
               const next = [...prev];
 
               for (const [row, prop, , newValue] of changes) {
@@ -134,7 +199,43 @@ export default function TimeGrid({
               }
 
               return next;
-            });
+            }, timeSpentChanged);
+          }}
+          afterCreateRow={(index: number, amount: number, source: unknown) => {
+            if (source === "loadData") return;
+            const hot = hotRef.current?.hotInstance;
+            if (!hot) return;
+            const currentData = hot.getSourceData() as TimeEntry[];
+            const updated = currentData.map((row) => ({
+              workItem: row?.workItem ?? "",
+              timeSpent: row?.timeSpent ?? "0h0m",
+              description: row?.description ?? "",
+            }));
+            updateEntries(updated, false); // row creation inserts 0h0m, total time doesn't change
+          }}
+          afterRemoveRow={(
+            index: number,
+            amount: number,
+            physicalRows: number[],
+            source: unknown,
+          ) => {
+            if (source === "loadData") return;
+            const hot = hotRef.current?.hotInstance;
+            if (!hot) return;
+            const currentData = hot.getSourceData() as TimeEntry[];
+            const updated = currentData.map((row) => ({
+              workItem: row?.workItem ?? "",
+              timeSpent: row?.timeSpent ?? "0h0m",
+              description: row?.description ?? "",
+            }));
+            updateEntries(updated, true); // row removal can change total time, so recalculate
+          }}
+          afterRowMove={() => {
+            const hot = hotRef.current?.hotInstance;
+            if (!hot) return;
+            // Get the source data which reflects the new row order
+            const currentData = hot.getSourceData() as TimeEntry[];
+            updateEntries([...currentData], false); // order change doesn't change total time
           }}
           licenseKey="non-commercial-and-evaluation"
         />

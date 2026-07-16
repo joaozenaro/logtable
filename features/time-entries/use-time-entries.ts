@@ -1,7 +1,9 @@
 "use client";
 
 import { TimeEntry } from "@/types";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import dayjs, { Dayjs } from "dayjs";
+import { getEntriesForDate, saveEntriesForDate } from "@/lib/db";
 
 function parseTimeToMinutes(timeSpent: string): number {
   if (!timeSpent) return 0;
@@ -19,23 +21,135 @@ function formatMinutes(totalMinutes: number): string {
   return `${hours}h ${minutes}m`;
 }
 
+function calculateTotal(entries: TimeEntry[]): string {
+  const totalMinutes = entries.reduce(
+    (acc, entry) => acc + parseTimeToMinutes(entry.timeSpent),
+    0,
+  );
+  return formatMinutes(totalMinutes);
+}
+
 export default function useTimeEntries() {
-  const [entries, setEntries] = useState<TimeEntry[]>([
-    { workItem: "XX", timeSpent: "0h0m", description: "description" },
-  ]);
+  const [selectedDate, setSelectedDateState] = useState<Dayjs>(() => dayjs());
+  const [entries, setEntriesState] = useState<TimeEntry[]>([]);
+  const [totalTime, setTotalTime] = useState<string>("0h 0m");
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const totalTime = useMemo(() => {
-    const totalMinutes = entries.reduce(
-      (acc, entry) => acc + parseTimeToMinutes(entry.timeSpent),
-      0,
-    );
+  const isDirtyRef = useRef(false);
+  const selectedDateRef = useRef(selectedDate);
 
-    return formatMinutes(totalMinutes);
-  }, [entries]);
+  // Sync selectedDate ref for immediate save on date change
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  // Load entries when selectedDate changes
+  useEffect(() => {
+    let active = true;
+
+    async function loadData() {
+      setIsLoading(true);
+      const dateStr = selectedDate.format("YYYY-MM-DD");
+      try {
+        const stored = await getEntriesForDate(dateStr);
+        if (!active) return;
+
+        if (stored && stored.length > 0) {
+          setEntriesState(stored);
+          setTotalTime(calculateTotal(stored));
+        } else {
+          // Default entry for a new day
+          const defaults = [
+            { workItem: "", timeSpent: "0h0m", description: "" },
+          ];
+          setEntriesState(defaults);
+          setTotalTime(calculateTotal(defaults));
+        }
+        // Mark as clean since we just loaded it from the database
+        isDirtyRef.current = false;
+      } catch (err) {
+        console.error("Failed to load entries from IndexedDB:", err);
+        if (active) {
+          const defaults = [
+            { workItem: "", timeSpent: "0h0m", description: "" },
+          ];
+          setEntriesState(defaults);
+          setTotalTime(calculateTotal(defaults));
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDate]);
+
+  // Save entries to IndexedDB (debounced)
+  useEffect(() => {
+    if (!isDirtyRef.current || isLoading) return;
+
+    const timer = setTimeout(async () => {
+      const dateStr = selectedDate.format("YYYY-MM-DD");
+      try {
+        await saveEntriesForDate(dateStr, entries);
+        isDirtyRef.current = false;
+      } catch (err) {
+        console.error("Failed to save entries to IndexedDB:", err);
+      }
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timer);
+  }, [entries, selectedDate, isLoading]);
+
+  // Change date (saves current day immediately if dirty)
+  const changeDate = async (newDate: Dayjs | null) => {
+    if (!newDate) return;
+    if (isDirtyRef.current) {
+      const dateStr = selectedDateRef.current.format("YYYY-MM-DD");
+      try {
+        // Save immediately before switching
+        await saveEntriesForDate(dateStr, entries);
+        isDirtyRef.current = false;
+      } catch (err) {
+        console.error("Failed to save entries before changing date:", err);
+      }
+    }
+    setSelectedDateState(newDate);
+  };
+
+  // State update wrapper that optionally recalculates total time
+  const updateEntries = (
+    newEntries: TimeEntry[] | ((prev: TimeEntry[]) => TimeEntry[]),
+    timeSpentChanged: boolean = true,
+  ) => {
+    setEntriesState((prev) => {
+      const resolved =
+        typeof newEntries === "function" ? newEntries(prev) : newEntries;
+
+      // Mark as dirty so it will be saved to IndexedDB
+      isDirtyRef.current = true;
+
+      // Recalculate totalTime only if timeSpentChanged is true
+      if (timeSpentChanged) {
+        setTotalTime(calculateTotal(resolved));
+      }
+
+      return resolved;
+    });
+  };
 
   return {
     entries,
-    setEntries,
+    updateEntries,
     totalTime,
+    selectedDate,
+    setSelectedDate: changeDate,
+    isLoading,
   };
 }
