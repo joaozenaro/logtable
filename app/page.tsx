@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@mui/material";
+import Table from "@/features/table/table";
 
 export default function Home() {
   const [result, setResult] = useState<string>("Loading...");
@@ -35,10 +36,13 @@ export default function Home() {
           Sign Out
         </Button>
       )}
+
       <div className="mb-4">
         /ping:
         <pre>{result}</pre>
       </div>
+
+      <Table></Table>
     </div>
   );
 }
