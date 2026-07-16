@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@mui/material";
 import Table from "@/features/table/table";
+import Calendar from "@/features/calendar/calendar";
 
 export default function Home() {
   const [result, setResult] = useState<string>("Loading...");
@@ -43,6 +44,8 @@ export default function Home() {
       </div>
 
       <Table></Table>
+
+      <Calendar />
     </div>
   );
 }
