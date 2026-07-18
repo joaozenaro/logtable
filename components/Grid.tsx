@@ -30,6 +30,7 @@ import { calculateTotal } from "@/lib/time";
 import { useDayRows, GridRow } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
+import DOMPurify from 'dompurify';
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -147,6 +148,7 @@ export default function Grid({ date }: { date: string | null }) {
                 autoWrapRow={true}
                 autoWrapCol={true}
                 startRows={MIN_ROWS}
+                sanitizer={(html: string) => DOMPurify.sanitize(html)}
                 colHeaders={["Work Item", "Time Spent", "Description"]}
                 colWidths={[160, 120, null]}
                 columns={[
