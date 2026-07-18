@@ -1,12 +1,17 @@
 "use client";
 
-import Calendar from "@/components/Calendar";
 import Grid from "@/components/Grid";
 import dayjs, { Dayjs } from "dayjs";
 import { useState } from "react";
 
+import dynamic from "next/dynamic";
+
+const Calendar = dynamic(() => import("@/components/Calendar"), {
+    ssr: false,
+});
+
 export default function Home() {
-    const [day, setDay] = useState<Dayjs | null>(() => dayjs());
+    const [day, setDay] = useState<Dayjs | null>(dayjs());
 
     return (
         <div className="flex">
