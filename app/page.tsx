@@ -3,14 +3,10 @@
 import Calendar from "@/components/Calendar";
 import Grid from "@/components/Grid";
 import dayjs, { Dayjs } from "dayjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function Home() {
-  const [day, setDay] = useState<Dayjs | null>(null);
-
-  useEffect(() => {
-    setDay(dayjs());
-  }, []);
+  const [day, setDay] = useState<Dayjs | null>(() => dayjs());
 
   return (
     <div className="flex">
@@ -21,7 +17,7 @@ export default function Home() {
         />
       </div>
       <div className="flex-1">
-        <Grid></Grid>
+        <Grid date={day ? day.format("YYYY-MM-DD") : null}></Grid>
       </div>
     </div>
   );

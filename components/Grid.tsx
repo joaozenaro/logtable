@@ -22,7 +22,11 @@ import { AutocompleteEditor, registerEditor } from 'handsontable/editors';
 import { autocompleteRenderer, registerRenderer } from 'handsontable/renderers';
 import { autocompleteValidator, registerValidator } from 'handsontable/validators';
 import { CellChange, ChangeSource } from 'handsontable';
+import Handsontable from 'handsontable';
 import { calculateTotal } from '@/lib/time';
+import { useDayRows, GridRow } from '@/hooks/useDayRows';
+import SyncStatusBadge from '@/components/SyncStatusBadge';
+import { MIN_ROWS } from '@/lib/timetable';
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -36,13 +40,59 @@ registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
 
-export default function Grid() {
+export default function Grid({ date }: { date: string | null }) {
     const hotRef = useRef<HotTableRef>(null);
     const [timeSpent, setTimeSpent] = useState<string>("00h00m");
+    const registeredHotRef = useRef<Handsontable | null>(null);
+    const isLoadingDataRef = useRef<boolean>(false);
 
-    useEffect(() => {
+    const { initialRows, status, notifyChange } = useDayRows(date);
+
+    const updateTotal = () => {
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
+        const total = calculateTotal(hot.getDataAtCol(1) as string[]);
+        setTimeSpent(total);
+    };
+
+    // Load from IndexedDB when initialRows changes (date load complete)
+    useEffect(() => {
+        if (!initialRows) return;
+        const hot = hotRef.current?.hotInstance;
+        if (!hot) return;
+
+        isLoadingDataRef.current = true;
+        hot.loadData(initialRows);
+        isLoadingDataRef.current = false;
+        updateTotal();
+    }, [initialRows]);
+
+    const onGridChanged = () => {
+        if (isLoadingDataRef.current) return;
+
+        const hot = hotRef.current?.hotInstance;
+        if (!hot) return;
+
+        updateTotal();
+
+        // Extract rows from Handsontable
+        const count = hot.countRows();
+        const rows: GridRow[] = [];
+        for (let i = 0; i < count; i++) {
+            const physicalIndex = hot.toPhysicalRow(i);
+            const rowData = hot.getSourceDataAtRow(physicalIndex) as GridRow | null;
+            if (rowData) {
+                rows.push(rowData);
+            }
+        }
+
+        notifyChange(rows);
+    };
+
+    // Setup shortcuts once hotInstance is available
+    useEffect(() => {
+        const hot = hotRef.current?.hotInstance;
+        if (!hot || registeredHotRef.current === hot) return;
 
         const shortcutManager = hot.getShortcutManager();
         const gridContext = shortcutManager.getContext('grid')!;
@@ -79,7 +129,8 @@ export default function Grid() {
                 },
             }
         ]);
-    }, [hotRef]);
+        registeredHotRef.current = hot;
+    });
 
     return (
         <div>
@@ -90,7 +141,7 @@ export default function Grid() {
                 height="auto"
                 autoWrapRow={true}
                 autoWrapCol={true}
-                startRows="10"
+                startRows={MIN_ROWS}
                 colHeaders={["Work Item", "Time Spent", "Description"]}
                 colWidths={[160, 120, null]}
                 columns={[
@@ -107,18 +158,22 @@ export default function Grid() {
                 rowHeaders={true}
                 manualRowMove={true}
                 imeFastEdit={true}
-                afterChange={(changes: CellChange[], source: ChangeSource) => {
+                enterMoves={{ row: 0, col: 1 }}
+                afterChange={(changes: CellChange[] | null, source: ChangeSource) => {
                     if (!changes || source === 'loadData') {
                         return;
                     }
-
-                    const total = calculateTotal(hotRef.current?.hotInstance?.getDataAtCol(1) as string[]);
-                    setTimeSpent(total);
+                    onGridChanged();
                 }}
+                afterRemoveRow={onGridChanged}
+                afterCreateRow={onGridChanged}
+                afterRowMove={onGridChanged}
                 licenseKey="non-commercial-and-evaluation"
             />
-            <div className='flex justify-end'>
-                <span className=''>
+            <div className='flex justify-between items-center mt-4 px-2 select-none'>
+                <SyncStatusBadge status={status} />
+
+                <span className='text-sm font-medium text-neutral-300'>
                     Total: {timeSpent}
                 </span>
             </div>
