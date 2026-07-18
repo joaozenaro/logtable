@@ -1,5 +1,5 @@
 export interface TimeEntry {
-  workItem: string;
-  timeSpent: string;
-  description: string;
+    workItem: string;
+    timeSpent: string;
+    description: string;
 }
