@@ -1,23 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { db } from '@/lib/db';
-import type { TimeRow } from '@/lib/db';
-import { trimTrailingBlankRows, padToMinRows, withOrder, MIN_ROWS } from '@/lib/timetable';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { db } from "@/lib/db";
+import type { TimeRow } from "@/lib/db";
+import {
+    trimTrailingBlankRows,
+    padToMinRows,
+    withOrder,
+    MIN_ROWS,
+} from "@/lib/timetable";
 
-export type SyncStatus = 'synced' | 'syncing' | 'error';
+export type SyncStatus = "synced" | "syncing" | "error";
 
-export type GridRow = Omit<TimeRow, 'id' | 'order' | 'date'> & Partial<Pick<TimeRow, 'id' | 'order' | 'date'>>;
+export type GridRow = Omit<TimeRow, "id" | "order" | "date"> &
+    Partial<Pick<TimeRow, "id" | "order" | "date">>;
 
 export function useDayRows(date: string | null) {
     const [initialRows, setInitialRows] = useState<GridRow[] | null>(null);
-    const [status, setStatus] = useState<SyncStatus>('synced');
+    const [status, setStatus] = useState<SyncStatus>("synced");
 
     const dateRef = useRef<string | null>(null);
     const loadedDateRef = useRef<string | null>(null);
     const generationRef = useRef<number>(0);
     const lastKnownRowsRef = useRef<GridRow[]>([]);
-    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+        undefined,
+    );
     const activeSavePromiseRef = useRef<Promise<void> | null>(null);
     const isMountedRef = useRef<boolean>(true);
 
@@ -34,35 +42,44 @@ export function useDayRows(date: string | null) {
         const trimmed = trimTrailingBlankRows(rows);
         const withOrderRows = withOrder(trimmed, targetDate);
 
-        await db.transaction('rw', db.rows, async () => {
-            await db.rows.where('date').equals(targetDate).delete();
+        await db.transaction("rw", db.rows, async () => {
+            await db.rows.where("date").equals(targetDate).delete();
             await db.rows.bulkAdd(withOrderRows);
         });
     }, []);
 
     // Private helper to run a save and manage status/active promise
-    const runSave = useCallback(async (rows: GridRow[], targetDate: string, targetGen: number) => {
-        const savePromise = (async () => {
-            try {
-                await save(rows, targetDate);
-                if (isMountedRef.current && targetGen === generationRef.current) {
-                    setStatus('synced');
+    const runSave = useCallback(
+        async (rows: GridRow[], targetDate: string, targetGen: number) => {
+            const savePromise = (async () => {
+                try {
+                    await save(rows, targetDate);
+                    if (
+                        isMountedRef.current &&
+                        targetGen === generationRef.current
+                    ) {
+                        setStatus("synced");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    if (
+                        isMountedRef.current &&
+                        targetGen === generationRef.current
+                    ) {
+                        setStatus("error");
+                    }
                 }
-            } catch (err) {
-                console.error(err);
-                if (isMountedRef.current && targetGen === generationRef.current) {
-                    setStatus('error');
-                }
+            })();
+
+            activeSavePromiseRef.current = savePromise;
+            await savePromise;
+
+            if (activeSavePromiseRef.current === savePromise) {
+                activeSavePromiseRef.current = null;
             }
-        })();
-
-        activeSavePromiseRef.current = savePromise;
-        await savePromise;
-
-        if (activeSavePromiseRef.current === savePromise) {
-            activeSavePromiseRef.current = null;
-        }
-    }, [save]);
+        },
+        [save],
+    );
 
     // Flush function to cancel pending timer and save immediately
     const flush = useCallback(async () => {
@@ -85,30 +102,37 @@ export function useDayRows(date: string | null) {
     }, [runSave]);
 
     // Schedule save with debounce
-    const scheduleSave = useCallback((rows: GridRow[]) => {
-        const targetDate = dateRef.current;
-        if (!targetDate) return;
+    const scheduleSave = useCallback(
+        (rows: GridRow[]) => {
+            const targetDate = dateRef.current;
+            if (!targetDate) return;
 
-        const targetGen = generationRef.current;
-        setStatus('syncing');
+            const targetGen = generationRef.current;
+            setStatus("syncing");
 
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
 
-        saveTimeoutRef.current = setTimeout(() => {
-            saveTimeoutRef.current = undefined;
-            runSave(rows, targetDate, targetGen);
-        }, 400);
-    }, [runSave]);
+            saveTimeoutRef.current = setTimeout(() => {
+                saveTimeoutRef.current = undefined;
+                runSave(rows, targetDate, targetGen);
+            }, 400);
+        },
+        [runSave],
+    );
 
     // Notify hook that grid rows have changed
-    const notifyChange = useCallback((rows: GridRow[]) => {
-        // Correctness check: only schedule saves if the data matches the currently loaded date in the grid
-        if (!dateRef.current || dateRef.current !== loadedDateRef.current) return;
-        lastKnownRowsRef.current = rows;
-        scheduleSave(rows);
-    }, [scheduleSave]);
+    const notifyChange = useCallback(
+        (rows: GridRow[]) => {
+            // Correctness check: only schedule saves if the data matches the currently loaded date in the grid
+            if (!dateRef.current || dateRef.current !== loadedDateRef.current)
+                return;
+            lastKnownRowsRef.current = rows;
+            scheduleSave(rows);
+        },
+        [scheduleSave],
+    );
 
     // Keep flush ref fresh for use in useEffect cleanup
     const flushRef = useRef(flush);
@@ -140,10 +164,13 @@ export function useDayRows(date: string | null) {
             // Set current date ref
             dateRef.current = date;
 
-            setStatus('syncing');
+            setStatus("syncing");
 
             try {
-                const rows = await db.rows.where('date').equals(date).sortBy('order');
+                const rows = await db.rows
+                    .where("date")
+                    .equals(date)
+                    .sortBy("order");
 
                 if (currentGen !== generationRef.current) return;
 
@@ -151,11 +178,14 @@ export function useDayRows(date: string | null) {
                 lastKnownRowsRef.current = padded;
                 loadedDateRef.current = date; // Set loaded date right before updating state
                 setInitialRows(padded);
-                setStatus('synced');
+                setStatus("synced");
             } catch (err) {
                 console.error(err);
-                if (isMountedRef.current && currentGen === generationRef.current) {
-                    setStatus('error');
+                if (
+                    isMountedRef.current &&
+                    currentGen === generationRef.current
+                ) {
+                    setStatus("error");
                 }
             }
         };

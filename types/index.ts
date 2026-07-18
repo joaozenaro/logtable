@@ -1,5 +1,5 @@
 export interface TimeEntry {
-    id: number,
+    id: number;
     workItem: string;
     timeSpent: string;
     description: string;

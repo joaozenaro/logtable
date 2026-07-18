@@ -1,4 +1,4 @@
-import Dexie, { Table } from 'dexie';
+import Dexie, { Table } from "dexie";
 
 export interface TimeRow {
     id?: number;
@@ -13,12 +13,11 @@ class TimeDB extends Dexie {
     rows!: Table<TimeRow, number>;
 
     constructor() {
-        super('TimeTrackerDB');
+        super("TimeTrackerDB");
         this.version(1).stores({
-            rows: '++id, order, date',
+            rows: "++id, order, date",
         });
     }
 }
 
 export const db = new TimeDB();
-

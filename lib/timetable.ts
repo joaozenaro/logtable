@@ -1,14 +1,15 @@
-import { TimeRow } from './db';
+import { TimeRow } from "./db";
 
 export const MIN_ROWS = 10;
 
 /** The user-editable fields of a row, independent of DB bookkeeping. */
-export type RowFields = Omit<TimeRow, 'id' | 'order' | 'date'>;
+export type RowFields = Omit<TimeRow, "id" | "order" | "date">;
 
 /** A row as it exists in the grid: editable fields required, DB bookkeeping optional/absent. */
-export type GridRow = RowFields & Partial<Pick<TimeRow, 'id' | 'order' | 'date'>>;
+export type GridRow = RowFields &
+    Partial<Pick<TimeRow, "id" | "order" | "date">>;
 
-const BLANK_ROW: RowFields = { workItem: '', timeSpent: '', description: '' };
+const BLANK_ROW: RowFields = { workItem: "", timeSpent: "", description: "" };
 
 /**
  * Trims trailing rows that are completely blank (empty workItem, timeSpent, and description).
@@ -29,7 +30,10 @@ export function trimTrailingBlankRows<T extends RowFields>(rows: T[]): T[] {
 /**
  * Pads the row array to ensure it has at least `min` elements.
  */
-export function padToMinRows<T extends RowFields>(rows: T[], min: number): Array<T | RowFields> {
+export function padToMinRows<T extends RowFields>(
+    rows: T[],
+    min: number,
+): Array<T | RowFields> {
     if (rows.length >= min) {
         return rows;
     }
@@ -37,18 +41,21 @@ export function padToMinRows<T extends RowFields>(rows: T[], min: number): Array
         ...rows,
         ...Array(min - rows.length)
             .fill(null)
-            .map(() => ({ ...BLANK_ROW }))
+            .map(() => ({ ...BLANK_ROW })),
     ];
 }
 
 /**
  * Assigns `order` index and `date` to each row and returns TimeRow objects (without `id`).
  */
-export function withOrder<T extends RowFields>(rows: T[], date: string): TimeRow[] {
+export function withOrder<T extends RowFields>(
+    rows: T[],
+    date: string,
+): TimeRow[] {
     return rows.map((r, i) => ({
-        workItem: r.workItem ?? '',
-        timeSpent: r.timeSpent ?? '',
-        description: r.description ?? '',
+        workItem: r.workItem ?? "",
+        timeSpent: r.timeSpent ?? "",
+        description: r.description ?? "",
         order: i,
         date,
     }));

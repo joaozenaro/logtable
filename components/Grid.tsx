@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
     CopyPaste,
@@ -6,27 +6,30 @@ import {
     registerPlugin,
     StretchColumns,
     UndoRedo,
-} from 'handsontable/plugins';
+} from "handsontable/plugins";
 
 import {
     AutocompleteCellType,
     registerCellType,
     TextCellType,
-} from 'handsontable/cellTypes';
-import { HotTable, HotTableRef } from '@handsontable/react-wrapper';
+} from "handsontable/cellTypes";
+import { HotTable, HotTableRef } from "@handsontable/react-wrapper";
 
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
-import { useEffect, useRef, useState } from 'react';
-import { AutocompleteEditor, registerEditor } from 'handsontable/editors';
-import { autocompleteRenderer, registerRenderer } from 'handsontable/renderers';
-import { autocompleteValidator, registerValidator } from 'handsontable/validators';
-import { CellChange, ChangeSource } from 'handsontable';
-import Handsontable from 'handsontable';
-import { calculateTotal } from '@/lib/time';
-import { useDayRows, GridRow } from '@/hooks/useDayRows';
-import SyncStatusBadge from '@/components/SyncStatusBadge';
-import { MIN_ROWS } from '@/lib/timetable';
+import "handsontable/styles/handsontable.min.css";
+import "handsontable/styles/ht-theme-main.min.css";
+import { useEffect, useRef, useState } from "react";
+import { AutocompleteEditor, registerEditor } from "handsontable/editors";
+import { autocompleteRenderer, registerRenderer } from "handsontable/renderers";
+import {
+    autocompleteValidator,
+    registerValidator,
+} from "handsontable/validators";
+import { CellChange, ChangeSource } from "handsontable";
+import Handsontable from "handsontable";
+import { calculateTotal } from "@/lib/time";
+import { useDayRows, GridRow } from "@/hooks/useDayRows";
+import SyncStatusBadge from "@/components/SyncStatusBadge";
+import { MIN_ROWS } from "@/lib/timetable";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -80,7 +83,9 @@ export default function Grid({ date }: { date: string | null }) {
         const rows: GridRow[] = [];
         for (let i = 0; i < count; i++) {
             const physicalIndex = hot.toPhysicalRow(i);
-            const rowData = hot.getSourceDataAtRow(physicalIndex) as GridRow | null;
+            const rowData = hot.getSourceDataAtRow(
+                physicalIndex,
+            ) as GridRow | null;
             if (rowData) {
                 rows.push(rowData);
             }
@@ -95,12 +100,12 @@ export default function Grid({ date }: { date: string | null }) {
         if (!hot || registeredHotRef.current === hot) return;
 
         const shortcutManager = hot.getShortcutManager();
-        const gridContext = shortcutManager.getContext('grid')!;
+        const gridContext = shortcutManager.getContext("grid")!;
 
         gridContext.addShortcuts([
             {
-                keys: [['Control', 'Enter']],
-                group: 'customActions',
+                keys: [["Control", "Enter"]],
+                group: "customActions",
                 callback: (event) => {
                     event.preventDefault();
                     const newRowIndex = hot.countRows();
@@ -109,8 +114,8 @@ export default function Grid({ date }: { date: string | null }) {
                 },
             },
             {
-                keys: [['Shift', 'Backspace']],
-                group: 'customActions',
+                keys: [["Shift", "Backspace"]],
+                group: "customActions",
                 callback: (event) => {
                     event.preventDefault();
 
@@ -127,7 +132,7 @@ export default function Grid({ date }: { date: string | null }) {
                         hot.selectCell(nextRow, 0);
                     }
                 },
-            }
+            },
         ]);
         registeredHotRef.current = hot;
     });
@@ -135,7 +140,7 @@ export default function Grid({ date }: { date: string | null }) {
     return (
         <div>
             <HotTable
-                className='ht-theme-main-dark-auto'
+                className="ht-theme-main-dark-auto"
                 ref={hotRef}
                 width="100%"
                 height="auto"
@@ -149,7 +154,7 @@ export default function Grid({ date }: { date: string | null }) {
                         data: "workItem",
                         type: "autocomplete",
                         source: ["au-1"],
-                        strict: false
+                        strict: false,
                     },
                     { data: "timeSpent", type: "text" },
                     { data: "description", type: "text" },
@@ -159,8 +164,11 @@ export default function Grid({ date }: { date: string | null }) {
                 manualRowMove={true}
                 imeFastEdit={true}
                 enterMoves={{ row: 0, col: 1 }}
-                afterChange={(changes: CellChange[] | null, source: ChangeSource) => {
-                    if (!changes || source === 'loadData') {
+                afterChange={(
+                    changes: CellChange[] | null,
+                    source: ChangeSource,
+                ) => {
+                    if (!changes || source === "loadData") {
                         return;
                     }
                     onGridChanged();
@@ -170,10 +178,10 @@ export default function Grid({ date }: { date: string | null }) {
                 afterRowMove={onGridChanged}
                 licenseKey="non-commercial-and-evaluation"
             />
-            <div className='flex justify-between items-center mt-4 px-2 select-none'>
+            <div className="flex justify-between items-center mt-4 px-2 select-none">
                 <SyncStatusBadge status={status} />
 
-                <span className='text-sm font-medium text-neutral-300'>
+                <span className="text-sm font-medium text-neutral-300">
                     Total: {timeSpent}
                 </span>
             </div>
