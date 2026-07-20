@@ -31,6 +31,9 @@ import { useDayRows, GridRow } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
 import DOMPurify from 'dompurify';
+import Button from "@mui/material/Button";
+import Shortcut from "./Shortcut";
+import { useToast } from "./ToastProvider";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -44,19 +47,46 @@ registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
 
+const SHORTCUTS = [
+    { keys: ["Alt", "Enter"], label: "Open work item" },
+    { keys: ["Ctrl", "Enter"], label: "Add row" },
+    { keys: ["Shift", "⌫"], label: "Delete row" },
+];
+
+const WORK_ITEM_COLUMN_INDEX = 0;
+const TIME_SPENT_COLUMN_INDEX = 1;
+
 export default function Grid({ date }: { date: string | null }) {
     const hotRef = useRef<HotTableRef>(null);
     const [timeSpent, setTimeSpent] = useState<string>("00h00m");
     const registeredHotRef = useRef<Handsontable | null>(null);
     const isLoadingDataRef = useRef<boolean>(false);
+    const { showToast } = useToast();
 
     const { initialRows, status, notifyChange } = useDayRows(date);
 
     const updateTotal = () => {
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
-        const total = calculateTotal(hot.getDataAtCol(1) as string[]);
+        const total = calculateTotal(hot.getDataAtCol(TIME_SPENT_COLUMN_INDEX) as string[]);
         setTimeSpent(total);
+    };
+
+    const copyAsCsv = () => {
+        const hot = hotRef.current?.hotInstance;
+        const data = hot?.getData();
+        const filteredData = data?.filter(row => row.some(cell => cell !== null && cell !== undefined && cell !== ''));
+
+        const stringForExport = filteredData?.join("\r\n");
+        if (stringForExport) {
+            navigator.clipboard.writeText(stringForExport)
+                .then(() => {
+                    showToast({ message: "Copied CSV to clipboard" });
+                })
+                .catch(err => {
+                    console.error('Failed to copy text: ', err);
+                });
+        }
     };
 
     // Load from IndexedDB when initialRows changes (date load complete)
@@ -105,6 +135,26 @@ export default function Grid({ date }: { date: string | null }) {
 
         gridContext.addShortcuts([
             {
+                keys: [["Alt", "Enter"]],
+                group: "customActions",
+                callback: (event) => {
+                    event.preventDefault();
+
+                    const selected = hot.getSelected();
+                    if (!selected) return;
+
+                    const [row] = selected[0];
+                    const key = hot.getDataAtCell(row, WORK_ITEM_COLUMN_INDEX);
+                    if (!key) return;
+
+                    const workItemUrl = process.env.WORK_ITEM_URL;
+                    if (workItemUrl) {
+                        const targetUrl = workItemUrl.replace("{key}", encodeURIComponent(String(key)));
+                        window.open(targetUrl, "_blank", "noopener,noreferrer");
+                    }
+                },
+            },
+            {
                 keys: [["Control", "Enter"]],
                 group: "customActions",
                 callback: (event) => {
@@ -139,51 +189,59 @@ export default function Grid({ date }: { date: string | null }) {
     });
 
     return (
-        <div>
-            <HotTable
-                className="ht-theme-main-dark-auto"
-                ref={hotRef}
-                width="100%"
-                height="auto"
-                autoWrapRow={true}
-                autoWrapCol={true}
-                startRows={MIN_ROWS}
-                sanitizer={(html: string) => DOMPurify.sanitize(html)}
-                colHeaders={["Work Item", "Time Spent", "Description"]}
-                colWidths={[160, 120, null]}
-                columns={[
-                    {
-                        data: "workItem",
-                        type: "autocomplete",
-                        source: ["au-1"],
-                        strict: false,
-                    },
-                    { data: "timeSpent", type: "text" },
-                    { data: "description", type: "text" },
-                ]}
-                stretchH="last"
-                rowHeaders={true}
-                manualRowMove={true}
-                imeFastEdit={true}
-                enterMoves={{ row: 0, col: 1 }}
-                afterChange={(
-                    changes: CellChange[] | null,
-                    source: ChangeSource,
-                ) => {
-                    if (!changes || source === "loadData") {
-                        return;
-                    }
-                    onGridChanged();
-                }}
-                afterRemoveRow={onGridChanged}
-                afterCreateRow={onGridChanged}
-                afterRowMove={onGridChanged}
-                licenseKey="non-commercial-and-evaluation"
-            />
-            <div className="flex justify-between items-center mt-4 px-2 select-none">
+        <div className="h-full flex flex-col p-4">
+            <div className="flex-1">
+                <HotTable
+                    className="ht-theme-main-dark-auto"
+                    ref={hotRef}
+                    width="100%"
+                    height="auto"
+                    autoWrapRow={true}
+                    autoWrapCol={true}
+                    startRows={MIN_ROWS}
+                    sanitizer={(html: string) => DOMPurify.sanitize(html)}
+                    colHeaders={["Work Item", "Time Spent", "Description"]}
+                    colWidths={[160, 120, null]}
+                    columns={[
+                        {
+                            data: "workItem",
+                            type: "autocomplete",
+                            source: ["xx"],
+                            strict: false,
+                        },
+                        { data: "timeSpent", type: "text" },
+                        { data: "description", type: "text" },
+                    ]}
+                    stretchH="last"
+                    rowHeaders={true}
+                    manualRowMove={true}
+                    imeFastEdit={true}
+                    enterMoves={{ row: 0, col: 1 }}
+                    afterChange={(
+                        changes: CellChange[] | null,
+                        source: ChangeSource,
+                    ) => {
+                        if (!changes || source === "loadData") {
+                            return;
+                        }
+                        onGridChanged();
+                    }}
+                    afterRemoveRow={onGridChanged}
+                    afterCreateRow={onGridChanged}
+                    afterRowMove={onGridChanged}
+                    licenseKey="non-commercial-and-evaluation"
+                />
+            </div>
+            <div className="grid grid-cols-[1fr_60%_1fr] mt-4 px-2 select-none">
                 <SyncStatusBadge status={status} />
 
-                <span className="text-sm font-medium text-neutral-300">
+                <div className="flex justify-between">
+                    {SHORTCUTS.map(shortcut => <Shortcut key={shortcut.label} keys={shortcut.keys} label={shortcut.label} />)}
+
+                    <Button variant="outlined" size="small" onClick={copyAsCsv}>Copy as CSV</Button>
+                </div>
+
+                <span className="flex items-center justify-end text-sm font-medium text-neutral-300">
                     Total: {timeSpent}
                 </span>
             </div>
