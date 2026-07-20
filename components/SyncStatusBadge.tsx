@@ -39,10 +39,12 @@ export default function SyncStatusBadge({ status }: SyncStatusBadgeProps) {
                     className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-300 ${meta.colorClass}`}
                 />
             </span>
-            <span className="text-xs text-neutral-400">{meta.label}</span>
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                {meta.label}
+            </span>
 
             {/* Tooltip */}
-            <div className="absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-neutral-900 text-neutral-200 text-xs px-2.5 py-1 rounded shadow-lg border border-neutral-800 whitespace-nowrap z-150">
+            <div className="absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-200 text-xs px-2.5 py-1 rounded shadow-lg border border-neutral-200 dark:border-neutral-800 whitespace-nowrap z-150">
                 {meta.tooltip}
             </div>
         </div>

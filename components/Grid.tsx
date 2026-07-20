@@ -213,7 +213,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     return (
         <div className="h-full flex flex-col p-4">
             <div className="flex justify-between py-2">
-                <span className="flex items-center justify-end text-sm font-medium text-neutral-300">
+                <span className="flex items-center justify-end text-sm font-medium text-neutral-600 dark:text-neutral-300">
                     Total: {timeSpent}
                 </span>
 
