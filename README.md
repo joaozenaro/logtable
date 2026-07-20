@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Time Tracker
 
-## Getting Started
+Work log management application built with a local-first, spreadsheet-like user experience.
 
-First, run the development server:
+## Constraints
+
+- Total budget: $0
+- Local-first design with fast, responsive UI
+- Spreadsheet-like experience:
+    - 90% of user interaction focused on fast editing, 10% on viewing
+    - Moving individual or multiple rows together is seamless
+- Keyboard-friendly navigation and custom shortcuts
+
+## Tech Stack
+
+- Core Framework: Next.js + React
+- Authentication: Better Auth (with GitHub OAuth)
+- Data Grid: Handsontable
+- Local Database: Dexie (IndexedDB)
+- UI Components: Material UI + MUI X Date Pickers
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure the following variables:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+BETTER_AUTH_SECRET="your_secret_here"
+BETTER_AUTH_URL="http://localhost:3000"
+GITHUB_CLIENT_ID="your_github_client_id"
+GITHUB_CLIENT_SECRET="your_github_client_secret"
+GITHUB_ALLOWED_USERNAME="your_github_username"
+WORK_ITEM_URL="https://your-domain.atlassian.net/browse/{key}"
+SEVENPACE_TOKEN="your_7pace_token"
+JIRA_TOKEN="email:your_jira_token"
+ASSIGNEE_ID="your_assignee_id"
+JIRA_BASE_URL="https://your-domain.atlassian.net"
+SEVENPACE_BASE_URL="https://your-domain.7pace.com"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Progress & Roadmap
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Grid for time log management
+- [x] Calendar day picker to filter time log entries
+- [x] IndexedDB persistence with Dexie
+- [x] Autocomplete suggestions for work item keys and descriptions
+- [ ] Remote Sync:
+    - [ ] V1: Basic POST endpoint and manual sync trigger
+    - [ ] V2: Per-row sync status tracking in Dexie and confirmation preview
+    - [ ] V3: Server-Sent Events (SSE) for live, per-row synchronization feedback
