@@ -30,7 +30,7 @@ import { calculateTotal } from "@/lib/time";
 import { useDayRows, GridRow } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 import Button from "@mui/material/Button";
 import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
@@ -55,8 +55,14 @@ const SHORTCUTS = [
 
 const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
+const COLUMN_TITLES = ["Work Item", "Time Spent", "Description"];
 
-export default function Grid({ date }: { date: string | null }) {
+interface GridProps {
+    date: string | null;
+    autocompleteSource?: string[];
+}
+
+export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const hotRef = useRef<HotTableRef>(null);
     const [timeSpent, setTimeSpent] = useState<string>("00h00m");
     const registeredHotRef = useRef<Handsontable | null>(null);
@@ -68,23 +74,36 @@ export default function Grid({ date }: { date: string | null }) {
     const updateTotal = () => {
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
-        const total = calculateTotal(hot.getDataAtCol(TIME_SPENT_COLUMN_INDEX) as string[]);
+        const total = calculateTotal(
+            hot.getDataAtCol(TIME_SPENT_COLUMN_INDEX) as string[],
+        );
         setTimeSpent(total);
     };
 
     const copyAsCsv = () => {
         const hot = hotRef.current?.hotInstance;
         const data = hot?.getData();
-        const filteredData = data?.filter(row => row.some(cell => cell !== null && cell !== undefined && cell !== ''));
+        const filteredData =
+            data?.filter((row) =>
+                row.some(
+                    (cell) =>
+                        cell !== null && cell !== undefined && cell !== "",
+                ),
+            ) ?? [];
 
-        const stringForExport = filteredData?.join("\r\n");
+        const csvData = [COLUMN_TITLES, ...filteredData];
+
+        const stringForExport = csvData
+            .map((row) => row.join(","))
+            .join("\r\n");
         if (stringForExport) {
-            navigator.clipboard.writeText(stringForExport)
+            navigator.clipboard
+                .writeText(stringForExport)
                 .then(() => {
                     showToast({ message: "Copied CSV to clipboard" });
                 })
-                .catch(err => {
-                    console.error('Failed to copy text: ', err);
+                .catch((err) => {
+                    console.error("Failed to copy text: ", err);
                 });
         }
     };
@@ -149,7 +168,10 @@ export default function Grid({ date }: { date: string | null }) {
 
                     const workItemUrl = process.env.WORK_ITEM_URL;
                     if (workItemUrl) {
-                        const targetUrl = workItemUrl.replace("{key}", encodeURIComponent(String(key)));
+                        const targetUrl = workItemUrl.replace(
+                            "{key}",
+                            encodeURIComponent(String(key)),
+                        );
                         window.open(targetUrl, "_blank", "noopener,noreferrer");
                     }
                 },
@@ -190,6 +212,16 @@ export default function Grid({ date }: { date: string | null }) {
 
     return (
         <div className="h-full flex flex-col p-4">
+            <div className="flex justify-between py-2">
+                <span className="flex items-center justify-end text-sm font-medium text-neutral-300">
+                    Total: {timeSpent}
+                </span>
+
+                <Button variant="outlined" size="small" onClick={copyAsCsv}>
+                    Copy as CSV
+                </Button>
+            </div>
+
             <div className="flex-1">
                 <HotTable
                     className="ht-theme-main-dark-auto"
@@ -200,13 +232,13 @@ export default function Grid({ date }: { date: string | null }) {
                     autoWrapCol={true}
                     startRows={MIN_ROWS}
                     sanitizer={(html: string) => DOMPurify.sanitize(html)}
-                    colHeaders={["Work Item", "Time Spent", "Description"]}
+                    colHeaders={COLUMN_TITLES}
                     colWidths={[160, 120, null]}
                     columns={[
                         {
                             data: "workItem",
                             type: "autocomplete",
-                            source: ["xx"],
+                            source: autocompleteSource,
                             strict: false,
                         },
                         { data: "timeSpent", type: "text" },
@@ -232,18 +264,18 @@ export default function Grid({ date }: { date: string | null }) {
                     licenseKey="non-commercial-and-evaluation"
                 />
             </div>
-            <div className="grid grid-cols-[1fr_60%_1fr] mt-4 px-2 select-none">
+            <div className="flex justify-between mt-4 px-2 select-none">
                 <SyncStatusBadge status={status} />
 
-                <div className="flex justify-between">
-                    {SHORTCUTS.map(shortcut => <Shortcut key={shortcut.label} keys={shortcut.keys} label={shortcut.label} />)}
-
-                    <Button variant="outlined" size="small" onClick={copyAsCsv}>Copy as CSV</Button>
+                <div className="flex gap-4">
+                    {SHORTCUTS.map((shortcut) => (
+                        <Shortcut
+                            key={shortcut.label}
+                            keys={shortcut.keys}
+                            label={shortcut.label}
+                        />
+                    ))}
                 </div>
-
-                <span className="flex items-center justify-end text-sm font-medium text-neutral-300">
-                    Total: {timeSpent}
-                </span>
             </div>
         </div>
     );
