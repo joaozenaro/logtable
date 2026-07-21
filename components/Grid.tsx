@@ -27,13 +27,15 @@ import {
 import { CellChange, ChangeSource } from "handsontable";
 import Handsontable from "handsontable";
 import { calculateTotal } from "@/lib/time";
-import { useDayRows, GridRow } from "@/hooks/useDayRows";
+import { useDayRows } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
 import DOMPurify from "dompurify";
 import Button from "@mui/material/Button";
 import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
+import { authClient } from "@/lib/auth-client";
+import type { GridRow } from "@/hooks/useDayRows";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -68,6 +70,8 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const registeredHotRef = useRef<Handsontable | null>(null);
     const isLoadingDataRef = useRef<boolean>(false);
     const { showToast } = useToast();
+    const { data: session } = authClient.useSession();
+    const [syncing, setSyncing] = useState(false);
 
     const { initialRows, status, notifyChange } = useDayRows(date);
 
@@ -105,6 +109,27 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 .catch((err) => {
                     console.error("Failed to copy text: ", err);
                 });
+        }
+    };
+
+    const handleSync = async () => {
+        const hot = hotRef.current?.hotInstance;
+        if (!hot) return;
+        const rows: GridRow[] = (hot.getData() as [string, string, string][])
+            .filter((r) => r.some(Boolean))
+            .map(([workItem, timeSpent, description]) => ({ workItem, timeSpent, description }));
+        setSyncing(true);
+        try {
+            const res = await fetch("/api/sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rows),
+            });
+            showToast(res.ok ? { message: "Synced!" } : { message: "Sync failed", severity: "error" });
+        } catch {
+            showToast({ message: "Sync failed", severity: "error" });
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -217,9 +242,20 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     Total: {timeSpent}
                 </span>
 
-                <Button variant="outlined" size="small" onClick={copyAsCsv}>
-                    Copy as CSV
-                </Button>
+                <div className="flex gap-2">
+                    {session ? (
+                        <Button variant="outlined" size="small" onClick={handleSync} disabled={syncing}>
+                            {syncing ? "Syncing…" : "Sync"}
+                        </Button>
+                    ) : (
+                        <Button variant="outlined" size="small" onClick={() => authClient.signIn.social({ provider: "github", callbackURL: "/" })}>
+                            Sign in
+                        </Button>
+                    )}
+                    <Button variant="outlined" size="small" onClick={copyAsCsv}>
+                        Copy as CSV
+                    </Button>
+                </div>
             </div>
 
             <div className="flex-1">

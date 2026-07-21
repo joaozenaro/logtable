@@ -44,6 +44,7 @@ SEVENPACE_BASE_URL="https://your-domain.7pace.com"
 - [x] IndexedDB persistence with Dexie
 - [x] Autocomplete suggestions for work item keys and descriptions
 - [ ] Remote Sync:
-    - [ ] V1: Basic POST endpoint and manual sync trigger
+    - [x] V1: Basic POST endpoint and manual sync trigger
     - [ ] V2: Per-row sync status tracking in Dexie and confirmation preview
     - [ ] V3: Server-Sent Events (SSE) for live, per-row synchronization feedback
+- [ ] Support for multiple users

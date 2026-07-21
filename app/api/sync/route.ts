@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(request: Request) {
     const session = await auth.api.getSession({
         headers: await headers(),
     });
@@ -18,8 +18,9 @@ export async function POST() {
         );
     }
 
-    const logs: Log[] = []; // TODO: Current day logs
+    const logs: Log[] = await request.json();
     await syncLogs(logs);
+    return NextResponse.json({ ok: true });
 }
 
 async function syncLogs(logs: Log[]) {
