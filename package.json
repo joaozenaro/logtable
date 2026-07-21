@@ -1,5 +1,5 @@
 {
-    "name": "timetracker",
+    "name": "logtable",
     "version": "0.1.0",
     "private": true,
     "scripts": {

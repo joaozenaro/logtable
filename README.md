@@ -1,4 +1,4 @@
-# Time Tracker
+# Worklog Table
 
 Work log management application built with a local-first, spreadsheet-like user experience.
 

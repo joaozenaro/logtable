@@ -2,7 +2,7 @@
 
 ## Context
 
-The app is a local-first timetracker. Users fill in time logs in a Handsontable grid, which are persisted to IndexedDB via Dexie. There is a skeleton `POST /api/sync` endpoint ported from a CLI that:
+The app is a local-first work log tracker. Users fill in time logs in a Handsontable grid, which are persisted to IndexedDB via Dexie. There is a skeleton `POST /api/sync` endpoint ported from a CLI that:
 
 1. Receives logs
 2. Resolves Jira work-item keys → numeric IDs (via Jira JQL search API)
@@ -325,7 +325,7 @@ V5 (server-side DB)        ~4-6 hours   ← Probably never
 
 ---
 
-## Dexie: answering "can Dexie help?"
+## Can Dexie help?
 
 **Yes, absolutely.** Dexie is already the local persistence layer. Adding `syncStatus` to the existing schema is the natural way to track what's been synced. Specifically:
 

@@ -13,7 +13,7 @@ class TimeDB extends Dexie {
     rows!: Table<TimeRow, number>;
 
     constructor() {
-        super("TimeTrackerDB");
+        super("LogTableDB");
         this.version(1).stores({
             rows: "++id, order, date",
         });
