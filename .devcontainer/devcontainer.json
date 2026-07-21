@@ -1,5 +1,5 @@
 {
-    "name": "Timetracker",
+    "name": "Log Table",
     "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
     "customizations": {
         "vscode": {

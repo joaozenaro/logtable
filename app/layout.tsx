@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "TimeTracker",
+    title: "LogTable",
     description: "Track your work time locally",
 };
 
