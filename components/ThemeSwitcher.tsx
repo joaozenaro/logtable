@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useColorScheme } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -7,13 +8,27 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 
 export default function ThemeSwitcher() {
-  const { mode, setMode } = useColorScheme();
+  const { mode, systemMode, setMode } = useColorScheme();
+  const [mounted, setMounted] = useState(false);
 
-  const isDark = mode === "dark";
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeMode = mode === "system" ? systemMode : mode;
+  const isDark = activeMode === "dark";
 
   const toggleMode = () => {
     setMode(isDark ? "light" : "dark");
   };
+
+  if (!mounted) {
+    return (
+      <IconButton size="small" aria-label="Toggle theme">
+        <DarkModeIcon />
+      </IconButton>
+    );
+  }
 
   return (
     <Tooltip
