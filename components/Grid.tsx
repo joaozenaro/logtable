@@ -79,8 +79,9 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const { mode } = useColorScheme();
 
     useEffect(() => {
-        theme.setColorScheme((mode as ThemeColorScheme) || 'auto')
-    }, [mode])
+        const colorScheme: ThemeColorScheme = mode === "dark" ? "dark" : mode === "light" ? "light" : "auto";
+        theme.setColorScheme(colorScheme);
+    }, [mode]);
 
     const { initialRows, status, notifyChange } = useDayRows(date);
 
