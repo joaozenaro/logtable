@@ -133,7 +133,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
             const res = await fetch("/api/sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(rows),
+                body: JSON.stringify({ logs: rows, date }),
             });
             showToast(res.ok ? { message: "Synced!" } : { message: "Sync failed", severity: "error" });
         } catch {

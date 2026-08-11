@@ -4,6 +4,7 @@ interface CreateWorklogRequest {
     comment: string;
     duration: string;
     externalItemId: string;
+    date?: string;
 }
 
 async function getCustomFields(settings: Settings) {
@@ -63,12 +64,23 @@ async function getCustomFields(settings: Settings) {
 export async function createWorklog(body: CreateWorklogRequest) {
     const settings = await getSettings();
     const customFields = await getCustomFields(settings);
-    const startedAt = new Date(new Date().setHours(9, 0, 0, 0))
+
+    let baseDate = new Date();
+    if (body.date) {
+        const [year, month, day] = body.date.split("-").map(Number);
+        if (year && month && day) {
+            baseDate = new Date(year, month - 1, day);
+        }
+    }
+
+    const startedAt = new Date(baseDate.setHours(9, 0, 0, 0))
         .toISOString()
         .slice(0, 19);
 
+    const { ...worklogBody } = body;
+
     const payload = {
-        ...body,
+        ...worklogBody,
         assigneeId: settings.ASSIGNEE_ID,
         startedAt,
         customFields,

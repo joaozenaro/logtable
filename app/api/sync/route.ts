@@ -18,12 +18,22 @@ export async function POST(request: Request) {
         );
     }
 
-    const logs: Log[] = await request.json();
-    await syncLogs(logs);
+    const body = await request.json();
+    let logs: Log[] = [];
+    let date: string | undefined = undefined;
+
+    if (Array.isArray(body)) {
+        logs = body;
+    } else if (body && typeof body === "object") {
+        logs = body.logs || [];
+        date = body.date;
+    }
+
+    await syncLogs(logs, date);
     return NextResponse.json({ ok: true });
 }
 
-async function syncLogs(logs: Log[]) {
+async function syncLogs(logs: Log[], date?: string) {
     const workItemMap = await getWorkItemIds(
         [...new Set(logs.map(l => l.workItem))]
     );
@@ -40,6 +50,7 @@ async function syncLogs(logs: Log[]) {
             comment: log.description,
             duration: parseTime(log.timeSpent, ParseReturn.Seconds).toString(),
             externalItemId: String(workItemId),
+            date,
         });
     }
 }
