@@ -41,7 +41,7 @@ export default function Home() {
 
     return (
         <div className="flex h-full">
-            <aside className="w-xs pt-4 h-full flex flex-col border-r border-gray-200 dark:border-gray-700">
+            <aside className="w-xs pt-4 h-full flex flex-col border-r border-divider">
                 <Calendar day={day} setDay={setDay} />
                 <ListEditor items={items} onItemsChange={handleItemsChange} />
             </aside>

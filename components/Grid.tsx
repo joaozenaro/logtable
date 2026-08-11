@@ -15,8 +15,6 @@ import {
 } from "handsontable/cellTypes";
 import { HotTable, HotTableRef } from "@handsontable/react-wrapper";
 
-import "handsontable/styles/handsontable.min.css";
-import "handsontable/styles/ht-theme-main.min.css";
 import { useEffect, useRef, useState } from "react";
 import { AutocompleteEditor, registerEditor } from "handsontable/editors";
 import { autocompleteRenderer, registerRenderer } from "handsontable/renderers";
@@ -24,8 +22,10 @@ import {
     autocompleteValidator,
     registerValidator,
 } from "handsontable/validators";
-import { CellChange, ChangeSource } from "handsontable";
+import { CellChange, ChangeSource, ThemeColorScheme } from "handsontable";
 import Handsontable from "handsontable";
+import { mainTheme, registerTheme } from 'handsontable/themes';
+
 import { calculateTotal } from "@/lib/time";
 import { useDayRows } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
@@ -36,6 +36,7 @@ import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
 import { authClient } from "@/lib/auth-client";
 import type { GridRow } from "@/hooks/useDayRows";
+import { useColorScheme } from "@mui/material";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -48,6 +49,9 @@ registerPlugin(CopyPaste);
 registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
+
+const theme = registerTheme(mainTheme)
+    .setColorScheme('auto');
 
 const SHORTCUTS = [
     { keys: ["Alt", "Enter"], label: "Open work item" },
@@ -72,6 +76,11 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const { showToast } = useToast();
     const { data: session } = authClient.useSession();
     const [syncing, setSyncing] = useState(false);
+    const { mode } = useColorScheme();
+
+    useEffect(() => {
+        theme.setColorScheme((mode as ThemeColorScheme) || 'auto')
+    }, [mode])
 
     const { initialRows, status, notifyChange } = useDayRows(date);
 
@@ -260,7 +269,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
             <div className="flex-1">
                 <HotTable
-                    className="ht-theme-main-dark-auto"
+                    theme={theme}
                     ref={hotRef}
                     width="100%"
                     height="auto"

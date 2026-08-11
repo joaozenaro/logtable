@@ -17,6 +17,7 @@
         "@mui/icons-material": "^9.2.0",
         "@mui/material": "^9.2.0",
         "@mui/material-nextjs": "^9.1.1",
+        "@mui/x-data-grid": "^9.11.0",
         "@mui/x-date-pickers": "^9.10.0",
         "better-auth": "^1.6.23",
         "dayjs": "^1.11.21",
@@ -24,7 +25,7 @@
         "dexie-react-hooks": "^4.4.0",
         "dompurify": "^3.4.12",
         "handsontable": "^18.0.0",
-        "next": "16.2.10",
+        "next": "^16.2.11",
         "react": "19.2.4",
         "react-dom": "19.2.4"
     },

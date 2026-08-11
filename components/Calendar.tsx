@@ -2,8 +2,6 @@
 
 import { Dispatch, SetStateAction } from "react";
 import { Dayjs } from "dayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 
 interface CalendarProps {
@@ -13,11 +11,9 @@ interface CalendarProps {
 
 export default function Calendar({ day, setDay }: CalendarProps) {
     return (
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateCalendar
-                value={day}
-                onChange={(newValue) => setDay(newValue)}
-            />
-        </LocalizationProvider>
+        <DateCalendar
+            value={day}
+            onChange={(newValue) => setDay(newValue)}
+        />
     );
 }
