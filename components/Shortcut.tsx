@@ -8,7 +8,7 @@ export default function Shortcut({ keys, label }: ShortcutProps) {
         <span className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 select-none">
             {keys.map((k, i) => (
                 <span key={k} className="flex items-center gap-1">
-                    <kbd className="rounded border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 font-mono text-[0.65rem] text-neutral-500 dark:text-neutral-400 leading-none shadow-sm">
+                    <kbd className="rounded border border-neutral-300 dark:border-neutral-700 px-1.5 py-0.5 font-mono text-[0.65rem] leading-none shadow-sm">
                         {k}
                     </kbd>
                     {i < keys.length - 1 && (

@@ -10,6 +10,12 @@
     --color-foreground: var(--foreground);
     --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
+    --color-divider: var(--mui-palette-divider);
+    --color-mui-primary: var(--mui-palette-primary-main);
+    --color-mui-text-secondary: var(--mui-palette-text-secondary);
+    --color-mui-text-primary: var(--mui-palette-text-primary);
+    --color-mui-paper: var(--mui-palette-background-paper);
+    --color-mui-default: var(--mui-palette-background-default);
 }
 
 @media (prefers-color-scheme: dark) {

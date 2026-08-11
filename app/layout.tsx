@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import Header from "@/components/Header";
+import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -27,9 +29,16 @@ export default function RootLayout({
         <html
             lang="en"
             className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+            suppressHydrationWarning
         >
             <Providers>
-                <body>{children}</body>
+                <body className="flex flex-col h-screen overflow-hidden m-0">
+                    <InitColorSchemeScript attribute="data" />
+                    <Header />
+                    <main className="flex-1 overflow-auto flex flex-col">
+                        {children}
+                    </main>
+                </body>
             </Providers>
         </html>
     );
