@@ -1,10 +1,12 @@
 import type { JiraIssue } from "@/types";
+import { getSettings } from "@/app/actions/settings";
 
 export async function getWorkItemIds(keys: string[]) {
-    const encoded = btoa(process.env.JIRA_TOKEN!);
+    const settings = await getSettings();
+    const encoded = btoa(settings.JIRA_TOKEN);
 
     const response = await fetch(
-        `${process.env.JIRA_BASE_URL}/rest/api/3/search/jql`,
+        `${settings.JIRA_BASE_URL}/rest/api/3/search/jql`,
         {
             method: "POST",
             headers: {

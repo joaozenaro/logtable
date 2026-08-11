@@ -1,17 +1,19 @@
+import { getSettings, Settings } from "@/app/actions/settings";
+
 interface CreateWorklogRequest {
     comment: string;
     duration: string;
     externalItemId: string;
 }
 
-async function getCustomFields() {
+async function getCustomFields(settings: Settings) {
     try {
         const response = await fetch(
-            `${process.env.SEVENPACE_BASE_URL}/api/v2/settings/customFields`,
+            `${settings.SEVENPACE_BASE_URL}/api/v2/settings/customFields`,
             {
                 method: "GET",
                 headers: {
-                    Authorization: `Bearer ${process.env.SEVENPACE_TOKEN}`,
+                    Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
                     "Content-Type": "application/json",
                 },
             }
@@ -59,24 +61,25 @@ async function getCustomFields() {
 }
 
 export async function createWorklog(body: CreateWorklogRequest) {
-    const customFields = await getCustomFields();
+    const settings = await getSettings();
+    const customFields = await getCustomFields(settings);
     const startedAt = new Date(new Date().setHours(9, 0, 0, 0))
         .toISOString()
         .slice(0, 19);
 
     const payload = {
         ...body,
-        assigneeId: process.env.ASSIGNEE_ID,
+        assigneeId: settings.ASSIGNEE_ID,
         startedAt,
         customFields,
     };
 
     const response = await fetch(
-        `${process.env.SEVENPACE_BASE_URL}/api/v2/worklogs`,
+        `${settings.SEVENPACE_BASE_URL}/api/v2/worklogs`,
         {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${process.env.SEVENPACE_TOKEN}`,
+                Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
