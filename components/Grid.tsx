@@ -200,14 +200,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     const key = hot.getDataAtCell(row, WORK_ITEM_COLUMN_INDEX);
                     if (!key) return;
 
-                    const workItemUrl = process.env.WORK_ITEM_URL;
-                    if (workItemUrl) {
-                        const targetUrl = workItemUrl.replace(
-                            "{key}",
-                            encodeURIComponent(String(key)),
-                        );
-                        window.open(targetUrl, "_blank", "noopener,noreferrer");
-                    }
+                    window.open(`/api/redirect-work-item?key=${encodeURIComponent(String(key))}`, "_blank", "noopener,noreferrer");
                 },
             },
             {
@@ -245,20 +238,16 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     });
 
     return (
-        <div className="h-full flex flex-col p-4">
+        <div className="h-full flex flex-col">
             <div className="flex justify-between py-2">
                 <span className="flex items-center justify-end text-sm font-medium text-neutral-600 dark:text-neutral-300">
                     Total: {timeSpent}
                 </span>
 
                 <div className="flex gap-2">
-                    {session ? (
+                    {session && (
                         <Button variant="outlined" size="small" onClick={handleSync} disabled={syncing}>
-                            {syncing ? "Syncing…" : "Sync"}
-                        </Button>
-                    ) : (
-                        <Button variant="outlined" size="small" onClick={() => authClient.signIn.social({ provider: "github", callbackURL: "/" })}>
-                            Sign in
+                            {syncing ? "Syncing..." : "Sync"}
                         </Button>
                     )}
                     <Button variant="outlined" size="small" onClick={copyAsCsv}>
@@ -267,7 +256,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 </div>
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 <HotTable
                     theme={theme}
                     ref={hotRef}

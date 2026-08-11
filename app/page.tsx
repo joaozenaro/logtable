@@ -41,11 +41,11 @@ export default function Home() {
 
     return (
         <div className="flex h-full">
-            <aside className="w-xs pt-4 h-full flex flex-col border-r border-divider">
+            <aside className="w-xs pt-2 h-full flex flex-col border-r border-divider">
                 <Calendar day={day} setDay={setDay} />
                 <ListEditor items={items} onItemsChange={handleItemsChange} />
             </aside>
-            <main className="flex-1">
+            <main className="flex-1 min-w-0 h-full pt-2 p-4">
                 <Grid
                     date={day ? day.format("YYYY-MM-DD") : null}
                     autocompleteSource={autocompleteKeys}
