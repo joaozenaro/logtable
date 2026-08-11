@@ -31,12 +31,11 @@ import { useDayRows } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
 import DOMPurify from "dompurify";
-import Button from "@mui/material/Button";
+import { Button, Typography, Box, useColorScheme } from "@mui/material";
 import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
 import { authClient } from "@/lib/auth-client";
 import type { GridRow } from "@/hooks/useDayRows";
-import { useColorScheme } from "@mui/material";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -76,12 +75,13 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const { showToast } = useToast();
     const { data: session } = authClient.useSession();
     const [syncing, setSyncing] = useState(false);
-    const { mode } = useColorScheme();
+    const { mode, systemMode } = useColorScheme();
 
     useEffect(() => {
-        const colorScheme: ThemeColorScheme = mode === "dark" ? "dark" : mode === "light" ? "light" : "auto";
+        const activeMode = mode === "system" ? systemMode : mode;
+        const colorScheme: ThemeColorScheme = activeMode === "dark" ? "dark" : activeMode === "light" ? "light" : "auto";
         theme.setColorScheme(colorScheme);
-    }, [mode]);
+    }, [mode, systemMode]);
 
     const { initialRows, status, notifyChange } = useDayRows(date);
 
@@ -241,9 +241,12 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     return (
         <div className="h-full flex flex-col">
             <div className="flex justify-between py-2">
-                <span className="flex items-center justify-end text-sm font-medium text-neutral-600 dark:text-neutral-300">
-                    Total: {timeSpent}
-                </span>
+                <Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", color: "text.primary" }}>
+                    Total:&nbsp;
+                    <Box component="span" sx={{ color: "primary.main" }}>
+                        {timeSpent}
+                    </Box>
+                </Typography>
 
                 <div className="flex gap-2">
                     {session && (
