@@ -7,6 +7,8 @@ export interface TimeRow {
     description: string;
     order: number; // preserves manual row order
     date: string; // scoped per day (YYYY-MM-DD format)
+    synced?: boolean;
+    remoteId?: string;
 }
 
 class TimeDB extends Dexie {

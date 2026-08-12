@@ -117,6 +117,22 @@ export async function createWorklog(
     return response.json();
 }
 
+export async function deleteWorklog(remoteId: string, settings: Settings) {
+    const response = await fetch(
+        `${settings.SEVENPACE_BASE_URL}/api/v2/worklogs/${remoteId}`,
+        {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await response.text());
+    }
+}
+
 export async function updateWorklog(
     remoteId: string,
     body: SaveWorklogRequestBody,

@@ -62,6 +62,14 @@ const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
 const COLUMN_TITLES = ["Work Item", "Time Spent", "Description"];
 
+interface SyncEvent {
+    kind: "sync" | "delete";
+    index: number;
+    status: "synced" | "deleted" | "error";
+    remoteId?: string;
+    error?: string;
+}
+
 interface GridProps {
     date: string | null;
     autocompleteSource?: string[];
@@ -76,6 +84,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const { data: session } = authClient.useSession();
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
+    const pendingSyncRowsRef = useRef<Set<number>>(new Set());
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
@@ -125,20 +134,153 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const handleSync = async () => {
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
-        const rows: GridRow[] = (hot.getData() as [string, string, string][])
-            .filter((r) => r.some(Boolean))
-            .map(([workItem, timeSpent, description]) => ({ workItem, timeSpent, description }));
+
+        // Collect non-empty rows to create/update, and blank rows that were
+        // previously synced to delete remotely.
+        const nonEmptyRows: { physicalRow: number; data: GridRow }[] = [];
+        const deleteRows: { physicalRow: number; remoteId: string }[] = [];
+        const count = hot.countRows();
+        for (let i = 0; i < count; i++) {
+            const physicalRow = hot.toPhysicalRow(i);
+            const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow | null;
+            if (rowData?.workItem || rowData?.timeSpent || rowData?.description) {
+                nonEmptyRows.push({ physicalRow, data: rowData });
+            } else if (rowData?.remoteId) {
+                deleteRows.push({ physicalRow, remoteId: rowData.remoteId });
+            }
+        }
+
+        if (nonEmptyRows.length === 0 && deleteRows.length === 0) {
+            showToast({ message: "Nothing to do.", severity: "info", duration: 2000 });
+            return;
+        }
+
+        const total = nonEmptyRows.length + deleteRows.length;
+
+        // Mark all affected rows as pending
+        pendingSyncRowsRef.current = new Set([
+            ...nonEmptyRows.map(r => r.physicalRow),
+            ...deleteRows.map(r => r.physicalRow),
+        ]);
+        hot.render();
+
         setSyncing(true);
+
         try {
             const res = await fetch("/api/sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ logs: rows, date }),
+                body: JSON.stringify({
+                    logs: nonEmptyRows.map(r => r.data),
+                    deletes: deleteRows.map(r => r.remoteId),
+                    date,
+                }),
             });
-            showToast(res.ok ? { message: "Synced!" } : { message: "Sync failed", severity: "error" });
+
+            if (!res.ok || !res.body) {
+                showToast({ message: "Sync failed", severity: "error" });
+                pendingSyncRowsRef.current.clear();
+                hot.render();
+                return;
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let doneCount = 0;
+            let errorCount = 0;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+
+                    let event: SyncEvent;
+                    try {
+                        event = JSON.parse(line.slice(6));
+                    } catch {
+                        continue;
+                    }
+
+                    let physicalRow: number;
+
+                    if (event.kind === "delete") {
+                        // Skip global errors (index -1)
+                        if (event.index < 0 || event.index >= deleteRows.length) continue;
+                        physicalRow = deleteRows[event.index].physicalRow;
+
+                        if (event.status === "deleted") {
+                            // getSourceDataAtRow returns a clone, so write through
+                            // setSourceDataAtCell to mutate the actual row data.
+                            hot.setSourceDataAtCell(physicalRow, "remoteId", undefined);
+                            hot.setSourceDataAtCell(physicalRow, "synced", false);
+                            doneCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } else {
+                        // Skip global errors (index -1)
+                        if (event.index < 0 || event.index >= nonEmptyRows.length) continue;
+                        physicalRow = nonEmptyRows[event.index].physicalRow;
+
+                        if (event.status === "synced") {
+                            hot.setSourceDataAtCell(physicalRow, "synced", true);
+                            if (event.remoteId) {
+                                hot.setSourceDataAtCell(physicalRow, "remoteId", event.remoteId);
+                            }
+                            doneCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    }
+
+                    pendingSyncRowsRef.current.delete(physicalRow);
+
+                    // Re-render to update dot colors
+                    hot.render();
+
+                    showToast({
+                        message: `Synced ${doneCount} of ${total}...`,
+                        severity: "info",
+                        duration: 60000,
+                    });
+                }
+            }
+
+            // Persist updated synced/remoteId to IndexedDB
+            const rows: GridRow[] = [];
+            for (let i = 0; i < hot.countRows(); i++) {
+                const physicalIndex = hot.toPhysicalRow(i);
+                const rowData = hot.getSourceDataAtRow(physicalIndex) as GridRow | null;
+                if (rowData) {
+                    rows.push(rowData);
+                }
+            }
+            notifyChange(rows);
+
+            // Final toast
+            if (errorCount > 0) {
+                showToast({
+                    message: `Synced ${doneCount} of ${total} (${errorCount} failed)`,
+                    severity: "warning",
+                });
+            } else {
+                showToast({
+                    message: `Synced ${doneCount} of ${total}`,
+                    severity: "success",
+                });
+            }
         } catch {
             showToast({ message: "Sync failed", severity: "error" });
         } finally {
+            pendingSyncRowsRef.current.clear();
+            hotRef.current?.hotInstance?.render();
             setSyncing(false);
         }
     };
@@ -283,7 +425,33 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         { data: "description", type: "text" },
                     ]}
                     stretchH="last"
-                    rowHeaders={true}
+                    rowHeaders={(row: number) => {
+                        const hot = hotRef.current?.hotInstance;
+                        let dotColor = '';
+
+                        if (hot) {
+                            const physicalRow = hot.toPhysicalRow(row);
+                            const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow;
+                            const hasContent = rowData?.workItem || rowData?.timeSpent || rowData?.description;
+
+                            if (hasContent) {
+                                if (pendingSyncRowsRef.current.has(physicalRow)) {
+                                    dotColor = 'bg-yellow-700';
+                                } else if (rowData?.synced) {
+                                    dotColor = 'bg-green-700';
+                                } else if (rowData?.remoteId) {
+                                    // Previously synced, edited since - next sync will update it.
+                                    dotColor = 'bg-yellow-700';
+                                }
+                            }
+                        }
+
+                        const dotHtml = dotColor
+                            ? `<div class="absolute top-1 right-1 rounded-full w-1 h-1 ${dotColor}"></div>`
+                            : "";
+
+                        return `${row + 1}${dotHtml}`;
+                    }}
                     manualRowMove={true}
                     imeFastEdit={true}
                     enterMoves={{ row: 0, col: 1 }}
@@ -294,6 +462,23 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         if (!changes || source === "loadData") {
                             return;
                         }
+
+                        const hot = hotRef.current?.hotInstance;
+                        if (hot) {
+                            for (const [row, prop, oldValue, newValue] of changes) {
+                                if (
+                                    (prop === "workItem" || prop === "timeSpent" || prop === "description") &&
+                                    oldValue !== newValue
+                                ) {
+                                    const physicalRow = hot.toPhysicalRow(row as number);
+                                    const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow | null;
+                                    if (rowData?.synced) {
+                                        hot.setSourceDataAtCell(physicalRow, "synced", false);
+                                    }
+                                }
+                            }
+                        }
+
                         onGridChanged();
                     }}
                     afterRemoveRow={onGridChanged}

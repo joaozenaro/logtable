@@ -7,6 +7,8 @@ export interface TimeEntry {
 
 export interface Log extends TimeEntry {
     workItemId?: number;
+    synced?: boolean;
+    remoteId?: string;
 }
 
 export interface JiraIssue {

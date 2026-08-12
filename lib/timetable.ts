@@ -56,6 +56,8 @@ export function withOrder<T extends RowFields>(
         workItem: r.workItem ?? "",
         timeSpent: r.timeSpent ?? "",
         description: r.description ?? "",
+        synced: r.synced,
+        remoteId: r.remoteId,
         order: i,
         date,
     }));
