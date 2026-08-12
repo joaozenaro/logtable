@@ -1,5 +1,7 @@
 "use client";
 
+import Tooltip from "./Tooltip";
+
 export type SyncStatus = "synced" | "syncing" | "error";
 
 interface SyncStatusBadgeProps {
@@ -28,23 +30,20 @@ export default function SyncStatusBadge({ status }: SyncStatusBadgeProps) {
     const meta = STATUS_META[status] || STATUS_META.synced;
 
     return (
-        <div className="flex items-center gap-2 group relative cursor-pointer">
-            <span className="relative flex h-2 w-2">
-                {status === "syncing" && (
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                )}
-                <span
-                    className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-300 ${meta.colorClass}`}
-                />
-            </span>
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                {meta.label}
-            </span>
-
-            {/* Tooltip */}
-            <div className="absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white dark:bg-neutral-900 text-neutral-700 dark:text-neutral-200 text-xs px-2.5 py-1 rounded shadow-lg border border-neutral-200 dark:border-neutral-800 whitespace-nowrap z-150">
-                {meta.tooltip}
+        <Tooltip title={meta.tooltip}>
+            <div className="inline-flex items-center gap-2 cursor-pointer">
+                <span className="relative flex h-2 w-2">
+                    {status === "syncing" && (
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    )}
+                    <span
+                        className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-300 ${meta.colorClass}`}
+                    />
+                </span>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {meta.label}
+                </span>
             </div>
-        </div>
+        </Tooltip>
     );
 }

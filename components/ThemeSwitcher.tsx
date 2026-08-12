@@ -2,7 +2,7 @@
 
 import { useColorScheme } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
+import Tooltip from "./Tooltip";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 

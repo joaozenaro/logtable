@@ -25,10 +25,10 @@ export async function requireAuth() {
 
 export async function saveSettings(formData: FormData) {
     await requireAuth();
-    
+
     const cookieStore = await cookies();
     const existingSettings = await getSettings();
-    
+
     const settingsToSave: Settings = {
         JIRA_BASE_URL: (formData.get('JIRA_BASE_URL') as string) || existingSettings.JIRA_BASE_URL || "",
         JIRA_TOKEN: (formData.get('JIRA_TOKEN') as string) || existingSettings.JIRA_TOKEN || "",
@@ -53,7 +53,7 @@ export async function getSettings(): Promise<Settings> {
 
     const cookieStore = await cookies();
     const encrypted = cookieStore.get('app_settings')?.value;
-    
+
     const defaultSettings: Settings = {
         JIRA_TOKEN: "",
         JIRA_BASE_URL: "",

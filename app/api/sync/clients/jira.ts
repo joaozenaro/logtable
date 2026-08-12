@@ -2,6 +2,8 @@ import type { JiraIssue } from "@/types";
 import { getSettings } from "@/app/actions/settings";
 
 export async function getWorkItemIds(keys: string[]) {
+    if (!keys.length) return new Map<string, number>();
+
     const settings = await getSettings();
     const encoded = btoa(settings.JIRA_TOKEN);
 

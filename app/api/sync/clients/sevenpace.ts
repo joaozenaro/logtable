@@ -1,13 +1,13 @@
 import { getSettings, Settings } from "@/app/actions/settings";
 
-interface CreateWorklogRequest {
+interface SaveWorklogRequestBody {
     comment: string;
     duration: string;
     externalItemId: string;
     date?: string;
 }
 
-async function getCustomFields(settings: Settings) {
+export async function getCustomFields(settings: Settings) {
     try {
         const response = await fetch(
             `${settings.SEVENPACE_BASE_URL}/api/v2/settings/customFields`,
@@ -61,21 +61,33 @@ async function getCustomFields(settings: Settings) {
     }
 }
 
-export async function createWorklog(body: CreateWorklogRequest) {
-    const settings = await getSettings();
-    const customFields = await getCustomFields(settings);
-
+function getStartedAt(date?: string): string {
     let baseDate = new Date();
-    if (body.date) {
-        const [year, month, day] = body.date.split("-").map(Number);
+    if (date) {
+        const [year, month, day] = date.split("-").map(Number);
         if (year && month && day) {
             baseDate = new Date(year, month - 1, day);
         }
     }
-
-    const startedAt = new Date(baseDate.setHours(9, 0, 0, 0))
+    return new Date(baseDate.setHours(9, 0, 0, 0))
         .toISOString()
         .slice(0, 19);
+}
+
+export interface CustomFieldItem {
+    id: string;
+    type: string;
+    value: boolean | { id: string } | unknown;
+}
+
+export async function createWorklog(
+    body: SaveWorklogRequestBody,
+    preFetchedCustomFields?: CustomFieldItem[],
+    preFetchedSettings?: Settings,
+) {
+    const settings = preFetchedSettings ?? (await getSettings());
+    const customFields = preFetchedCustomFields ?? (await getCustomFields(settings));
+    const startedAt = getStartedAt(body.date);
 
     const { ...worklogBody } = body;
 
@@ -90,6 +102,44 @@ export async function createWorklog(body: CreateWorklogRequest) {
         `${settings.SEVENPACE_BASE_URL}/api/v2/worklogs`,
         {
             method: "POST",
+            headers: {
+                Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(await response.text());
+    }
+
+    return response.json();
+}
+
+export async function updateWorklog(
+    remoteId: string,
+    body: SaveWorklogRequestBody,
+    preFetchedCustomFields?: CustomFieldItem[],
+    preFetchedSettings?: Settings,
+) {
+    const settings = preFetchedSettings ?? (await getSettings());
+    const customFields = preFetchedCustomFields ?? (await getCustomFields(settings));
+    const startedAt = getStartedAt(body.date);
+
+    const { ...worklogBody } = body;
+
+    const payload = {
+        ...worklogBody,
+        assigneeId: settings.ASSIGNEE_ID,
+        startedAt,
+        customFields,
+    };
+
+    const response = await fetch(
+        `${settings.SEVENPACE_BASE_URL}/api/v2/worklogs/${remoteId}`,
+        {
+            method: "PUT",
             headers: {
                 Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
                 "Content-Type": "application/json",
