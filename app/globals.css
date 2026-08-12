@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
     --background: #ffffff;
     --foreground: #171717;
+}
+
+.dark {
+    --background: #0a0a0a;
+    --foreground: #ededed;
 }
 
 @theme inline {
@@ -16,13 +23,6 @@
     --color-mui-text-primary: var(--mui-palette-text-primary);
     --color-mui-paper: var(--mui-palette-background-paper);
     --color-mui-default: var(--mui-palette-background-default);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #0a0a0a;
-        --foreground: #ededed;
-    }
 }
 
 body {

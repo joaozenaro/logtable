@@ -33,7 +33,7 @@ export default function RootLayout({
         >
             <Providers>
                 <body className="flex flex-col h-screen overflow-hidden m-0">
-                    <InitColorSchemeScript attribute="data" />
+                    <InitColorSchemeScript attribute="class" />
                     <Header />
                     <main className="flex-1 overflow-auto flex flex-col">
                         {children}
