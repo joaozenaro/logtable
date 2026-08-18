@@ -2,6 +2,8 @@
 
 import {
     CopyPaste,
+    HiddenColumns,
+    ManualColumnResize,
     ManualRowMove,
     registerPlugin,
     StretchColumns,
@@ -45,6 +47,8 @@ registerRenderer(autocompleteRenderer);
 registerValidator(autocompleteValidator);
 
 registerPlugin(CopyPaste);
+registerPlugin(HiddenColumns);
+registerPlugin(ManualColumnResize);
 registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
@@ -60,7 +64,7 @@ const SHORTCUTS = [
 
 const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
-const COLUMN_TITLES = ["Work Item", "Time Spent", "Description"];
+const COLUMN_TITLES = ["Work Item", "Time Spent", "Description", "Notes"];
 
 interface SyncEvent {
     kind: "sync" | "delete";
@@ -85,6 +89,22 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
+    const [showNotes, setShowNotes] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+        const storedShowNotes = localStorage.getItem("showNotes");
+        if (storedShowNotes !== null) {
+            setShowNotes(storedShowNotes === "true");
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isMounted) {
+            localStorage.setItem("showNotes", showNotes.toString());
+        }
+    }, [showNotes, isMounted]);
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
@@ -171,7 +191,10 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    logs: nonEmptyRows.map(r => r.data),
+                    logs: nonEmptyRows.map(r => {
+                        const { notes, ...rest } = r.data;
+                        return rest;
+                    }),
                     deletes: deleteRows.map(r => r.remoteId),
                     date,
                 }),
@@ -391,6 +414,9 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 </Typography>
 
                 <div className="flex gap-2">
+                    <Button variant="outlined" size="small" onClick={() => setShowNotes(!showNotes)}>
+                        {showNotes ? "Hide Notes" : "Show Notes"}
+                    </Button>
                     {session && (
                         <Button variant="outlined" size="small" onClick={handleSync} disabled={syncing}>
                             {syncing ? "Syncing..." : "Sync"}
@@ -413,7 +439,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     startRows={MIN_ROWS}
                     sanitizer={(html: string) => DOMPurify.sanitize(html)}
                     colHeaders={COLUMN_TITLES}
-                    colWidths={[160, 120, null]}
+                    colWidths={[160, 120, null, 200]}
                     columns={[
                         {
                             data: "workItem",
@@ -423,8 +449,13 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         },
                         { data: "timeSpent", type: "text" },
                         { data: "description", type: "text" },
+                        { data: "notes", type: "text" },
                     ]}
-                    stretchH="last"
+                    hiddenColumns={{
+                        columns: showNotes ? [] : [3],
+                        indicators: true,
+                    }}
+                    stretchH="all"
                     rowHeaders={(row: number) => {
                         const hot = hotRef.current?.hotInstance;
                         let dotColor = '';
@@ -452,6 +483,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
                         return `${row + 1}${dotHtml}`;
                     }}
+                    manualColumnResize={true}
                     manualRowMove={true}
                     imeFastEdit={true}
                     enterMoves={{ row: 0, col: 1 }}

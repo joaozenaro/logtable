@@ -5,6 +5,7 @@ export interface TimeRow {
     workItem: string;
     timeSpent: string;
     description: string;
+    notes?: string;
     order: number; // preserves manual row order
     date: string; // scoped per day (YYYY-MM-DD format)
     synced?: boolean;

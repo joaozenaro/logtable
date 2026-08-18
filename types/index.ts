@@ -3,6 +3,7 @@ export interface TimeEntry {
     workItem: string;
     timeSpent: string;
     description: string;
+    notes?: string;
 }
 
 export interface Log extends TimeEntry {
