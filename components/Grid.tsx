@@ -30,6 +30,7 @@ import { mainTheme, registerTheme } from 'handsontable/themes';
 
 import { calculateTotal } from "@/lib/time";
 import { useDayRows } from "@/hooks/useDayRows";
+import { useShowNotes } from "@/hooks/useShowNotes";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
 import DOMPurify from "dompurify";
@@ -64,6 +65,7 @@ const SHORTCUTS = [
 
 const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
+const NOTES_COLUMN_INDEX = 2;
 const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
 
 interface SyncEvent {
@@ -89,30 +91,25 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
-    const [showNotes, setShowNotes] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
+    const { showNotes, setShowNotes, isMounted } = useShowNotes();
 
     useEffect(() => {
-        const stored = localStorage.getItem("showNotes");
-        if (stored !== null) {
-            // Because this runs in a Next.js client component after hydration,
-            // we delay the initialization of state so it matches what we want
-            // but doesn't throw a sync update warning.
-            setTimeout(() => {
-                setShowNotes(stored === "true");
-                setIsMounted(true);
-            }, 0);
+        if (!isMounted) return;
+
+        const hot = hotRef.current?.hotInstance;
+        if (!hot) return;
+
+        const plugin = hot.getPlugin("hiddenColumns");
+        if (!plugin) return;
+
+        if (showNotes) {
+            plugin.showColumn(NOTES_COLUMN_INDEX);
         } else {
-            setTimeout(() => {
-                setIsMounted(true);
-            }, 0);
+            plugin.hideColumn(NOTES_COLUMN_INDEX);
         }
-    }, []);
 
-    useEffect(() => {
-        if (isMounted) {
-            localStorage.setItem("showNotes", showNotes.toString());
-        }
+        // Ensure rendering updates the column headers and sizing
+        hot.render();
     }, [showNotes, isMounted]);
 
     useEffect(() => {
@@ -462,7 +459,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         { data: "description", type: "text" },
                     ]}
                     hiddenColumns={{
-                        columns: isMounted && showNotes ? [] : [2],
+                        columns: [NOTES_COLUMN_INDEX],
                         indicators: true,
                     }}
                     stretchH="last"
