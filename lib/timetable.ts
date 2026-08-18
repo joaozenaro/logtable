@@ -9,7 +9,7 @@ export type RowFields = Omit<TimeRow, "id" | "order" | "date">;
 export type GridRow = RowFields &
     Partial<Pick<TimeRow, "id" | "order" | "date">>;
 
-const BLANK_ROW: RowFields = { workItem: "", timeSpent: "", description: "" };
+const BLANK_ROW: RowFields = { workItem: "", timeSpent: "", notes: "", description: "" };
 
 /**
  * Trims trailing rows that are completely blank (empty workItem, timeSpent, and description).
@@ -55,6 +55,7 @@ export function withOrder<T extends RowFields>(
     return rows.map((r, i) => ({
         workItem: r.workItem ?? "",
         timeSpent: r.timeSpent ?? "",
+        notes: r.notes ?? "",
         description: r.description ?? "",
         synced: r.synced,
         remoteId: r.remoteId,

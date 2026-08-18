@@ -2,6 +2,8 @@
 
 import {
     CopyPaste,
+    HiddenColumns,
+    ManualColumnResize,
     ManualRowMove,
     registerPlugin,
     StretchColumns,
@@ -36,6 +38,7 @@ import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
 import { authClient } from "@/lib/auth-client";
 import type { GridRow } from "@/hooks/useDayRows";
+import { useLocalStorageFlag } from "@/hooks/useLocalStorageFlag";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -45,6 +48,8 @@ registerRenderer(autocompleteRenderer);
 registerValidator(autocompleteValidator);
 
 registerPlugin(CopyPaste);
+registerPlugin(HiddenColumns);
+registerPlugin(ManualColumnResize);
 registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
@@ -60,7 +65,10 @@ const SHORTCUTS = [
 
 const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
-const COLUMN_TITLES = ["Work Item", "Time Spent", "Description"];
+const NOTES_COLUMN_INDEX = 2;
+const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
+
+const NOTES_VISIBLE_KEY = "logtable:notesVisible";
 
 interface SyncEvent {
     kind: "sync" | "delete";
@@ -85,6 +93,24 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
+    const [notesVisible, setNotesVisible] = useLocalStorageFlag(NOTES_VISIBLE_KEY);
+
+    const toggleNotes = () => {
+        const hot = hotRef.current?.hotInstance;
+        if (!hot) return;
+
+        const plugin = hot.getPlugin("hiddenColumns");
+        const next = !notesVisible;
+
+        if (next) {
+            plugin.showColumn(NOTES_COLUMN_INDEX);
+        } else {
+            plugin.hideColumn(NOTES_COLUMN_INDEX);
+        }
+
+        hot.render();
+        setNotesVisible(next);
+    };
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
@@ -391,6 +417,9 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 </Typography>
 
                 <div className="flex gap-2">
+                    <Button variant="outlined" size="small" onClick={toggleNotes}>
+                        {notesVisible ? "Hide notes" : "Show notes"}
+                    </Button>
                     {session && (
                         <Button variant="outlined" size="small" onClick={handleSync} disabled={syncing}>
                             {syncing ? "Syncing..." : "Sync"}
@@ -413,7 +442,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     startRows={MIN_ROWS}
                     sanitizer={(html: string) => DOMPurify.sanitize(html)}
                     colHeaders={COLUMN_TITLES}
-                    colWidths={[160, 120, null]}
+                    colWidths={[160, 120, 200, null]}
                     columns={[
                         {
                             data: "workItem",
@@ -422,8 +451,14 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                             strict: false,
                         },
                         { data: "timeSpent", type: "text" },
+                        { data: "notes", type: "text" },
                         { data: "description", type: "text" },
                     ]}
+                    hiddenColumns={{
+                        columns: notesVisible ? [] : [NOTES_COLUMN_INDEX],
+                        indicators: true,
+                    }}
+                    manualColumnResize={true}
                     stretchH="last"
                     rowHeaders={(row: number) => {
                         const hot = hotRef.current?.hotInstance;
