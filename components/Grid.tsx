@@ -89,17 +89,31 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
-    const [showNotes, setShowNotes] = useState(() => {
-        if (typeof window !== "undefined") {
-            const stored = localStorage.getItem("showNotes");
-            if (stored !== null) return stored === "true";
-        }
-        return false;
-    });
+    const [showNotes, setShowNotes] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        localStorage.setItem("showNotes", showNotes.toString());
-    }, [showNotes]);
+        const stored = localStorage.getItem("showNotes");
+        if (stored !== null) {
+            // Because this runs in a Next.js client component after hydration,
+            // we delay the initialization of state so it matches what we want
+            // but doesn't throw a sync update warning.
+            setTimeout(() => {
+                setShowNotes(stored === "true");
+                setIsMounted(true);
+            }, 0);
+        } else {
+            setTimeout(() => {
+                setIsMounted(true);
+            }, 0);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isMounted) {
+            localStorage.setItem("showNotes", showNotes.toString());
+        }
+    }, [showNotes, isMounted]);
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
@@ -448,7 +462,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         { data: "description", type: "text" },
                     ]}
                     hiddenColumns={{
-                        columns: showNotes ? [] : [2],
+                        columns: isMounted && showNotes ? [] : [2],
                         indicators: true,
                     }}
                     stretchH="last"
