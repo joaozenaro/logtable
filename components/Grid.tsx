@@ -64,7 +64,7 @@ const SHORTCUTS = [
 
 const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
-const COLUMN_TITLES = ["Work Item", "Time Spent", "Description", "Notes"];
+const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
 
 interface SyncEvent {
     kind: "sync" | "delete";
@@ -89,22 +89,17 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [syncing, setSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
-    const [showNotes, setShowNotes] = useState(false);
-    const [isMounted, setIsMounted] = useState(false);
+    const [showNotes, setShowNotes] = useState(() => {
+        if (typeof window !== "undefined") {
+            const stored = localStorage.getItem("showNotes");
+            if (stored !== null) return stored === "true";
+        }
+        return false;
+    });
 
     useEffect(() => {
-        setIsMounted(true);
-        const storedShowNotes = localStorage.getItem("showNotes");
-        if (storedShowNotes !== null) {
-            setShowNotes(storedShowNotes === "true");
-        }
-    }, []);
-
-    useEffect(() => {
-        if (isMounted) {
-            localStorage.setItem("showNotes", showNotes.toString());
-        }
-    }, [showNotes, isMounted]);
+        localStorage.setItem("showNotes", showNotes.toString());
+    }, [showNotes]);
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
@@ -192,6 +187,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     logs: nonEmptyRows.map(r => {
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                         const { notes, ...rest } = r.data;
                         return rest;
                     }),
@@ -439,7 +435,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     startRows={MIN_ROWS}
                     sanitizer={(html: string) => DOMPurify.sanitize(html)}
                     colHeaders={COLUMN_TITLES}
-                    colWidths={[160, 120, null, 200]}
+                    colWidths={[160, 120, 200, null]}
                     columns={[
                         {
                             data: "workItem",
@@ -448,14 +444,14 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                             strict: false,
                         },
                         { data: "timeSpent", type: "text" },
-                        { data: "description", type: "text" },
                         { data: "notes", type: "text" },
+                        { data: "description", type: "text" },
                     ]}
                     hiddenColumns={{
-                        columns: showNotes ? [] : [3],
+                        columns: showNotes ? [] : [2],
                         indicators: true,
                     }}
-                    stretchH="all"
+                    stretchH="last"
                     rowHeaders={(row: number) => {
                         const hot = hotRef.current?.hotInstance;
                         let dotColor = '';
