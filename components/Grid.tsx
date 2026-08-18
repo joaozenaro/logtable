@@ -198,9 +198,9 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     logs: nonEmptyRows.map(r => {
-                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                        const { notes, ...rest } = r.data;
-                        return rest;
+                        const copy = { ...r.data };
+                        delete copy.notes;
+                        return copy;
                     }),
                     deletes: deleteRows.map(r => r.remoteId),
                     date,
