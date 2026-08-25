@@ -457,6 +457,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     hiddenColumns={{
                         columns: notesVisible ? [] : [NOTES_COLUMN_INDEX],
                         indicators: true,
+                        copyPasteEnabled: false,
                     }}
                     manualColumnResize={true}
                     stretchH="last"
