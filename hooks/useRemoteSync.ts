@@ -6,8 +6,8 @@ import type { HotTableRef } from "@handsontable/react-wrapper";
 
 import type { SyncEvent, SyncRequestBody } from "@/lib/syncTypes";
 import { forEachSyncEvent } from "@/lib/syncStream";
-import { readRows, rowHasContent } from "@/lib/gridRows";
-import type { EditableWorkLogRow } from "@/lib/dayRows";
+import { readRows } from "@/lib/gridRows";
+import { rowHasContent, type EditableWorkLogRow } from "@/lib/dayRows";
 import { useToast } from "@/components/ToastProvider";
 
 interface UseRemoteSyncOptions {

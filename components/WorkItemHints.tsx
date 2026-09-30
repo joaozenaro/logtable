@@ -14,7 +14,7 @@ import {
 import { handsontableTheme } from "@/lib/handsontableTheme";
 import { registerGridShortcuts } from "@/lib/gridShortcuts";
 import { CheckboxCellType, registerCellType } from "handsontable/cellTypes";
-import { Input, InputAdornment, OutlinedInput, TextField } from "@mui/material";
+import { InputAdornment, OutlinedInput } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
 registerPlugin(ColumnSorting);
@@ -32,12 +32,15 @@ export type WorkItemHint = {
     description: string;
 };
 
-interface ListEditorProps {
+interface WorkItemHintsProps {
     items: WorkItemHint[];
     onItemsChange: (items: WorkItemHint[]) => void;
 }
 
-export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
+export default function WorkItemHints({
+    items,
+    onItemsChange,
+}: WorkItemHintsProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const hotRef = useRef<Handsontable | null>(null);
 
@@ -142,6 +145,10 @@ export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
             hot.destroy();
             hotRef.current = null;
         };
+        // Seeded once with the initial `items`. Later changes are pushed in by
+        // the updateData effect below; depending on `items` here would rebuild
+        // the grid on every change and drop the user's cursor and selection.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     /*

@@ -1,24 +1,6 @@
 import type Handsontable from "handsontable/base";
 import type { CellChange } from "handsontable";
-import type { EditableWorkLogRow } from "./dayRows";
-
-/**
- * Fields that make a row worth keeping. Editing one of them on a synced row
- * invalidates the remote work log, so the same list drives both the blank-row
- * check and the unsync-on-edit rule.
- */
-const CONTENT_FIELDS = ["workItem", "timeSpent", "description"] as const;
-
-function isContentField(prop: string): boolean {
-    return (CONTENT_FIELDS as readonly string[]).includes(prop);
-}
-
-/** True when the row has anything worth persisting or syncing. */
-export function rowHasContent(row?: EditableWorkLogRow | null): boolean {
-    if (!row) return false;
-
-    return CONTENT_FIELDS.some((field) => Boolean(row[field]));
-}
+import { isContentField, type EditableWorkLogRow } from "./dayRows";
 
 /** Reads every row of the grid in display order, as stored source data. */
 export function readRows(hot: Handsontable): EditableWorkLogRow[] {

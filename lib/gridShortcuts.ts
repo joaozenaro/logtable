@@ -1,7 +1,5 @@
 import type Handsontable from "handsontable/base";
-
-/** Column holding the work item key in every grid. */
-const WORK_ITEM_COLUMN_INDEX = 0;
+import { WORK_ITEM_COLUMN_INDEX } from "./gridColumns";
 
 interface GridShortcut {
     /** Key combination registered with Handsontable. */

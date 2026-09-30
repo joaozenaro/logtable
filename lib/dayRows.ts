@@ -9,6 +9,25 @@ export type RowFields = Omit<WorkLogRow, "id" | "order" | "date">;
 export type EditableWorkLogRow = RowFields &
     Partial<Pick<WorkLogRow, "id" | "order" | "date">>;
 
+/**
+ * Fields that make a row worth keeping. Editing one of them on a synced row
+ * invalidates the remote work log, so the same list drives both the blank-row
+ * check and the unsync-on-edit rule.
+ */
+const CONTENT_FIELDS = ["workItem", "timeSpent", "description"] as const;
+
+/** True when the field is one of the content-bearing row fields. */
+export function isContentField(prop: string): boolean {
+    return (CONTENT_FIELDS as readonly string[]).includes(prop);
+}
+
+/** True when the row has anything worth persisting or syncing. */
+export function rowHasContent(row?: RowFields | null): boolean {
+    if (!row) return false;
+
+    return CONTENT_FIELDS.some((field) => Boolean(row[field]));
+}
+
 const BLANK_ROW: RowFields = {
     workItem: "",
     timeSpent: "",
@@ -17,16 +36,11 @@ const BLANK_ROW: RowFields = {
 };
 
 /**
- * Trims trailing rows that are completely blank (empty workItem, timeSpent, and description).
+ * Trims trailing rows that are completely blank (no work item, time or description).
  */
 export function trimTrailingBlankRows<T extends RowFields>(rows: T[]): T[] {
     let lastNonBlank = rows.length - 1;
-    while (
-        lastNonBlank >= 0 &&
-        !rows[lastNonBlank].workItem &&
-        !rows[lastNonBlank].timeSpent &&
-        !rows[lastNonBlank].description
-    ) {
+    while (lastNonBlank >= 0 && !rowHasContent(rows[lastNonBlank])) {
         lastNonBlank--;
     }
     return rows.slice(0, lastNonBlank + 1);

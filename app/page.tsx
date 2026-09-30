@@ -5,13 +5,13 @@ import dayjs, { Dayjs } from "dayjs";
 import { useCallback, useMemo, useState } from "react";
 
 import dynamic from "next/dynamic";
-import type { WorkItemHint } from "@/components/ListEditor";
+import type { WorkItemHint } from "@/components/WorkItemHints";
 
 const Calendar = dynamic(() => import("@/components/Calendar"), {
     ssr: false,
 });
 
-const ListEditor = dynamic(() => import("@/components/ListEditor"), {
+const WorkItemHints = dynamic(() => import("@/components/WorkItemHints"), {
     ssr: false,
 });
 
@@ -63,7 +63,7 @@ export default function Home() {
         <div className="flex h-full">
             <aside className="w-xs pt-2 h-full flex flex-col border-r border-divider">
                 <Calendar day={day} setDay={setDay} />
-                <ListEditor
+                <WorkItemHints
                     items={workItemHints}
                     onItemsChange={handleWorkItemHintsChange}
                 />

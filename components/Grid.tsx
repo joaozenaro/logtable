@@ -45,9 +45,12 @@ import {
     markEditedRowsUnsynced,
     readRows,
     renderRowHeader,
-    rowHasContent,
 } from "@/lib/gridRows";
-import { MIN_ROWS, type EditableWorkLogRow } from "@/lib/dayRows";
+import {
+    MIN_ROWS,
+    rowHasContent,
+    type EditableWorkLogRow,
+} from "@/lib/dayRows";
 import { useDayRows } from "@/hooks/useDayRows";
 import { useRemoteSync } from "@/hooks/useRemoteSync";
 import { useLocalStorageFlag } from "@/hooks/useLocalStorageFlag";
