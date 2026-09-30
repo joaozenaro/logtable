@@ -36,6 +36,19 @@ export function rowHasContent(row?: RowFields | null): boolean {
     return CONTENT_FIELDS.some((field) => Boolean(row[field]));
 }
 
+/**
+ * True when the row holds content 7pace does not already have. A row that is
+ * still `synced` is left out: the header dot already marks it as done, so
+ * sending it again would only cost an API call. Editing a synced field clears
+ * the flag (see `invalidatesRemoteLog`), which is what puts the row back in
+ * this set.
+ */
+export function rowNeedsSync(row?: RowFields | null): boolean {
+    if (!row) return false;
+
+    return !row.synced && rowHasContent(row);
+}
+
 const BLANK_ROW: RowFields = {
     workItem: "",
     timeSpent: "",

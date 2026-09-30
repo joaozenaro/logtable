@@ -7,7 +7,11 @@ import type { HotTableRef } from "@handsontable/react-wrapper";
 import type { SyncEvent, SyncRequestBody } from "@/lib/syncTypes";
 import { forEachSyncEvent } from "@/lib/syncStream";
 import { readRows } from "@/lib/gridRows";
-import { rowHasContent, type EditableWorkLogRow } from "@/lib/dayRows";
+import {
+    rowHasContent,
+    rowNeedsSync,
+    type EditableWorkLogRow,
+} from "@/lib/dayRows";
 import { useToast } from "@/components/ToastProvider";
 
 interface UseRemoteSyncOptions {
@@ -44,8 +48,9 @@ export function useRemoteSync({
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
 
-        // Collect non-empty rows to create/update, and blank rows that were
-        // previously synced to delete remotely.
+        // Collect rows that still need to reach 7pace, and blank rows that were
+        // previously synced to delete remotely. Rows that are still `synced`
+        // are skipped: they already match the remote work log.
         const nonEmptyRows: {
             physicalRow: number;
             data: EditableWorkLogRow;
@@ -58,9 +63,12 @@ export function useRemoteSync({
                 physicalRow,
             ) as EditableWorkLogRow | null;
 
-            if (rowData && rowHasContent(rowData)) {
+            if (rowData && rowNeedsSync(rowData)) {
                 nonEmptyRows.push({ physicalRow, data: rowData });
-            } else if (rowData?.remoteId) {
+            } else if (rowData?.remoteId && !rowHasContent(rowData)) {
+                // Blank but previously synced: the content was cleared, so the
+                // remote work log has to go. A row that still has content is
+                // never deleted here, whether or not it is already synced.
                 deleteRows.push({ physicalRow, remoteId: rowData.remoteId });
             }
         }
