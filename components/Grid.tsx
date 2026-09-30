@@ -61,6 +61,7 @@ import { useToast } from "./ToastProvider";
 import { authClient } from "@/lib/auth-client";
 import DOMPurify from "dompurify";
 import { Button, Typography, Box, useColorScheme } from "@mui/material";
+import dayjs from "dayjs";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
@@ -194,10 +195,27 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     sx={{
                         display: "flex",
                         alignItems: "center",
+                        gap: 1.5,
                         color: "text.primary",
                     }}
                 >
-                    Total:&nbsp;
+                    {date && (
+                        <>
+                            <span>{dayjs(date).format("ddd, MMM D")}</span>
+                            <Box
+                                component="span"
+                                aria-hidden
+                                sx={{
+                                    color: "text.disabled",
+                                    fontSize: "1.25rem",
+                                    lineHeight: 1,
+                                }}
+                            >
+                                •
+                            </Box>
+                        </>
+                    )}
+                    <span>Total:</span>
                     <Box component="span" sx={{ color: "primary.main" }}>
                         {timeSpent}
                     </Box>
