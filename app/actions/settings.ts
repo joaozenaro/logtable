@@ -3,7 +3,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { requireAuth } from "@/lib/auth";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { encrypt, decrypt } from "@/lib/settingsCipher";
 
 export interface Settings {
     JIRA_TOKEN: string;

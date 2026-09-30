@@ -1,11 +1,11 @@
-export enum ParseReturn {
+export enum TimeUnit {
     Minutes,
     Seconds,
 }
 
 export function parseTime(
     timeSpent: string,
-    type: ParseReturn = ParseReturn.Minutes,
+    unit: TimeUnit = TimeUnit.Minutes,
 ): number {
     if (!timeSpent) return 0;
 
@@ -15,16 +15,16 @@ export function parseTime(
     const hours = Number(match.groups.hours ?? 0);
     const minutes = Number(match.groups.minutes ?? 0);
 
-    if (type == ParseReturn.Minutes) {
+    if (unit == TimeUnit.Minutes) {
         return hours * 60 + minutes;
     }
 
     return hours * 3600 + minutes * 60;
 }
 
-export function calculateTotal(entries: string[]): string {
-    const totalMinutes = entries.reduce(
-        (acc, entry) => acc + parseTime(entry),
+export function calculateTotal(timeSpents: string[]): string {
+    const totalMinutes = timeSpents.reduce(
+        (acc, timeSpent) => acc + parseTime(timeSpent),
         0,
     );
 

@@ -8,13 +8,13 @@ import {
     padToMinRows,
     withOrder,
     MIN_ROWS,
-} from "@/lib/timetable";
+} from "@/lib/dayRows";
 
 /** Status of saving the day's rows to the local IndexedDB database. */
 export type SaveStatus = "saved" | "saving" | "error";
 
 export function useDayRows(date: string | null) {
-    const [initialRows, setInitialRows] = useState<EditableWorkLogRow[] | null>(
+    const [loadedRows, setInitialRows] = useState<EditableWorkLogRow[] | null>(
         null,
     );
     const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
@@ -129,8 +129,8 @@ export function useDayRows(date: string | null) {
         [runSave],
     );
 
-    // Notify hook that grid rows have changed
-    const notifyChange = useCallback(
+    // Report that the grid's rows changed, scheduling a debounced save.
+    const onRowsChange = useCallback(
         (rows: EditableWorkLogRow[]) => {
             // Correctness check: only schedule saves if the data matches the currently loaded date in the grid
             if (!dateRef.current || dateRef.current !== loadedDateRef.current)
@@ -206,9 +206,8 @@ export function useDayRows(date: string | null) {
     }, [date]);
 
     return {
-        initialRows,
+        loadedRows,
         saveStatus,
-        notifyChange,
-        flush,
+        onRowsChange,
     };
 }

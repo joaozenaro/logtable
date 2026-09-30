@@ -4,14 +4,14 @@ import {
     SyncRequestBody,
     toSseData,
 } from "@/lib/syncTypes";
-import { getWorkItemIds } from "./clients/jira";
+import { getWorkItemIds } from "@/lib/integrations/jira";
 import {
     createWorklog,
     updateWorklog,
     deleteWorklog,
     getCustomFields,
-} from "./clients/sevenpace";
-import { ParseReturn, parseTime } from "@/lib/time";
+} from "@/lib/integrations/sevenpace";
+import { TimeUnit, parseTime } from "@/lib/time";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
                             comment: log.description,
                             duration: parseTime(
                                 log.timeSpent,
-                                ParseReturn.Seconds,
+                                TimeUnit.Seconds,
                             ).toString(),
                             externalItemId: String(workItemId),
                             date,

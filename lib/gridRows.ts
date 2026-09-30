@@ -1,6 +1,6 @@
 import type Handsontable from "handsontable/base";
 import type { CellChange } from "handsontable";
-import type { EditableWorkLogRow } from "./timetable";
+import type { EditableWorkLogRow } from "./dayRows";
 
 /**
  * Fields that make a row worth keeping. Editing one of them on a synced row

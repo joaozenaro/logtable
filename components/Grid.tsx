@@ -47,7 +47,7 @@ import {
     renderRowHeader,
     rowHasContent,
 } from "@/lib/gridRows";
-import { MIN_ROWS, type EditableWorkLogRow } from "@/lib/timetable";
+import { MIN_ROWS, type EditableWorkLogRow } from "@/lib/dayRows";
 import { useDayRows } from "@/hooks/useDayRows";
 import { useRemoteSync } from "@/hooks/useRemoteSync";
 import { useLocalStorageFlag } from "@/hooks/useLocalStorageFlag";
@@ -90,11 +90,11 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [notesVisible, setNotesVisible] =
         useLocalStorageFlag(NOTES_VISIBLE_KEY);
 
-    const { initialRows, saveStatus, notifyChange } = useDayRows(date);
+    const { loadedRows, saveStatus, onRowsChange } = useDayRows(date);
     const { remoteSyncing, sync, pendingRows } = useRemoteSync({
         hotRef,
         date,
-        onRowsChange: notifyChange,
+        onRowsChange,
     });
 
     const toggleNotes = () => {
@@ -150,17 +150,17 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         }
     };
 
-    // Load from IndexedDB when initialRows changes (date load complete)
+    // Load from IndexedDB when loadedRows changes (date load complete)
     useEffect(() => {
-        if (!initialRows) return;
+        if (!loadedRows) return;
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
 
         isLoadingDataRef.current = true;
-        hot.loadData(initialRows);
+        hot.loadData(loadedRows);
         isLoadingDataRef.current = false;
         updateTotal();
-    }, [initialRows]);
+    }, [loadedRows]);
 
     const onGridChanged = () => {
         if (isLoadingDataRef.current) return;
@@ -169,7 +169,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         if (!hot) return;
 
         updateTotal();
-        notifyChange(readRows(hot));
+        onRowsChange(readRows(hot));
     };
 
     // Setup shortcuts once hotInstance is available

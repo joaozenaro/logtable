@@ -1,5 +1,10 @@
-import type { JiraIssue } from "@/types";
 import { getSettings, Settings } from "@/app/actions/settings";
+
+/** A Jira issue as returned by the search endpoint. */
+interface JiraIssue {
+    id: number;
+    key: string;
+}
 
 export async function getWorkItemIds(
     keys: string[],
