@@ -25,10 +25,10 @@ Work log management application built with a local-first, spreadsheet-like user 
 - [x] Calendar day picker to filter time log entries
 - [x] IndexedDB persistence with Dexie
 - [x] Autocomplete suggestions for work item keys and descriptions
-- [ ] Synced status checkbox
-- [ ] Handsontable cell type for autocomplete
-- [ ] Remote Sync:
+- [x] Synced status
+- [x] Handsontable autocomplete
+- [x] Support for multiple users
+- [x] Remote Sync:
     - [x] V1: Basic POST endpoint and manual sync trigger
-    - [ ] V2: Per-row sync status tracking in Dexie and confirmation preview
-    - [ ] V3: Server-Sent Events (SSE) for live, per-row synchronization feedback
-- [ ] Support for multiple users
+    - [x] V2: Per-row sync status tracking in Dexie
+    - [x] V3: Server-Sent Events (SSE) for live feedback
