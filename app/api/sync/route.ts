@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     } else if (body && typeof body === "object") {
         logs = body.logs || [];
         deletes = body.deletes || [];
-        date = body.date;
+        date = body.date ?? undefined;
     }
 
     const encoder = new TextEncoder();

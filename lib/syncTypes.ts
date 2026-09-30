@@ -12,11 +12,13 @@ export interface SyncLogPayload {
  * Body accepted by POST /api/sync.
  *
  * A bare array of logs is also accepted, for clients predating deletes/date.
+ * `date` is null when the grid has no day selected, which the server reads as
+ * "use today".
  */
 export interface SyncRequestBody {
     logs?: SyncLogPayload[];
     deletes?: string[];
-    date?: string;
+    date?: string | null;
 }
 
 /**
