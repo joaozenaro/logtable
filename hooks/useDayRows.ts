@@ -2,27 +2,27 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "@/lib/db";
-import type { TimeRow } from "@/lib/db";
 import {
+    EditableWorkLogRow,
     trimTrailingBlankRows,
     padToMinRows,
     withOrder,
     MIN_ROWS,
 } from "@/lib/timetable";
 
-export type SyncStatus = "synced" | "syncing" | "error";
-
-export type GridRow = Omit<TimeRow, "id" | "order" | "date"> &
-    Partial<Pick<TimeRow, "id" | "order" | "date">>;
+/** Status of saving the day's rows to the local IndexedDB database. */
+export type SaveStatus = "saved" | "saving" | "error";
 
 export function useDayRows(date: string | null) {
-    const [initialRows, setInitialRows] = useState<GridRow[] | null>(null);
-    const [status, setStatus] = useState<SyncStatus>("synced");
+    const [initialRows, setInitialRows] = useState<EditableWorkLogRow[] | null>(
+        null,
+    );
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
 
     const dateRef = useRef<string | null>(null);
     const loadedDateRef = useRef<string | null>(null);
     const generationRef = useRef<number>(0);
-    const lastKnownRowsRef = useRef<GridRow[]>([]);
+    const lastKnownRowsRef = useRef<EditableWorkLogRow[]>([]);
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
         undefined,
     );
@@ -38,19 +38,26 @@ export function useDayRows(date: string | null) {
     }, []);
 
     // Core save function - the ONLY place that touches db.rows
-    const save = useCallback(async (rows: GridRow[], targetDate: string) => {
-        const trimmed = trimTrailingBlankRows(rows);
-        const withOrderRows = withOrder(trimmed, targetDate);
+    const save = useCallback(
+        async (rows: EditableWorkLogRow[], targetDate: string) => {
+            const trimmed = trimTrailingBlankRows(rows);
+            const withOrderRows = withOrder(trimmed, targetDate);
 
-        await db.transaction("rw", db.rows, async () => {
-            await db.rows.where("date").equals(targetDate).delete();
-            await db.rows.bulkAdd(withOrderRows);
-        });
-    }, []);
+            await db.transaction("rw", db.rows, async () => {
+                await db.rows.where("date").equals(targetDate).delete();
+                await db.rows.bulkAdd(withOrderRows);
+            });
+        },
+        [],
+    );
 
     // Private helper to run a save and manage status/active promise
     const runSave = useCallback(
-        async (rows: GridRow[], targetDate: string, targetGen: number) => {
+        async (
+            rows: EditableWorkLogRow[],
+            targetDate: string,
+            targetGen: number,
+        ) => {
             const savePromise = (async () => {
                 try {
                     await save(rows, targetDate);
@@ -58,7 +65,7 @@ export function useDayRows(date: string | null) {
                         isMountedRef.current &&
                         targetGen === generationRef.current
                     ) {
-                        setStatus("synced");
+                        setSaveStatus("saved");
                     }
                 } catch (err) {
                     console.error(err);
@@ -66,7 +73,7 @@ export function useDayRows(date: string | null) {
                         isMountedRef.current &&
                         targetGen === generationRef.current
                     ) {
-                        setStatus("error");
+                        setSaveStatus("error");
                     }
                 }
             })();
@@ -103,12 +110,12 @@ export function useDayRows(date: string | null) {
 
     // Schedule save with debounce
     const scheduleSave = useCallback(
-        (rows: GridRow[]) => {
+        (rows: EditableWorkLogRow[]) => {
             const targetDate = dateRef.current;
             if (!targetDate) return;
 
             const targetGen = generationRef.current;
-            setStatus("syncing");
+            setSaveStatus("saving");
 
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
@@ -124,7 +131,7 @@ export function useDayRows(date: string | null) {
 
     // Notify hook that grid rows have changed
     const notifyChange = useCallback(
-        (rows: GridRow[]) => {
+        (rows: EditableWorkLogRow[]) => {
             // Correctness check: only schedule saves if the data matches the currently loaded date in the grid
             if (!dateRef.current || dateRef.current !== loadedDateRef.current)
                 return;
@@ -164,7 +171,7 @@ export function useDayRows(date: string | null) {
             // Set current date ref
             dateRef.current = date;
 
-            setStatus("syncing");
+            setSaveStatus("saving");
 
             try {
                 const rows = await db.rows
@@ -178,14 +185,14 @@ export function useDayRows(date: string | null) {
                 lastKnownRowsRef.current = padded;
                 loadedDateRef.current = date; // Set loaded date right before updating state
                 setInitialRows(padded);
-                setStatus("synced");
+                setSaveStatus("saved");
             } catch (err) {
                 console.error(err);
                 if (
                     isMountedRef.current &&
                     currentGen === generationRef.current
                 ) {
-                    setStatus("error");
+                    setSaveStatus("error");
                 }
             }
         };
@@ -200,7 +207,7 @@ export function useDayRows(date: string | null) {
 
     return {
         initialRows,
-        status,
+        saveStatus,
         notifyChange,
         flush,
     };

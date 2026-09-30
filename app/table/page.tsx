@@ -1,6 +1,6 @@
 "use client";
 
-import { db, TimeRow } from "@/lib/db";
+import { db, WorkLogRow } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { DataGrid, GridColDef, GridSlotsComponentsProps } from "@mui/x-data-grid";
 import { useState } from "react";
@@ -54,7 +54,7 @@ export default function Table() {
         [filterDates.start, filterDates.end]
     );
 
-    const columns: GridColDef<TimeRow>[] = [
+    const columns: GridColDef<WorkLogRow>[] = [
         {
             field: "date",
             headerName: "Date",

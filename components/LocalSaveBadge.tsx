@@ -1,39 +1,38 @@
 "use client";
 
+import type { SaveStatus } from "@/hooks/useDayRows";
 import Tooltip from "./Tooltip";
 
-export type SyncStatus = "synced" | "syncing" | "error";
-
-interface SyncStatusBadgeProps {
-    status: SyncStatus;
+interface LocalSaveBadgeProps {
+    status: SaveStatus;
 }
 
 const STATUS_META = {
-    synced: {
+    saved: {
         colorClass: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]",
         label: "Saved",
         tooltip: "All changes saved to IndexedDB",
     },
-    syncing: {
+    saving: {
         colorClass: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]",
         label: "Saving...",
-        tooltip: "Syncing changes to IndexedDB...",
+        tooltip: "Saving changes to IndexedDB...",
     },
     error: {
         colorClass: "bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]",
-        label: "Sync Error",
+        label: "Save Error",
         tooltip: "Failed to save changes to IndexedDB",
     },
 };
 
-export default function SyncStatusBadge({ status }: SyncStatusBadgeProps) {
-    const meta = STATUS_META[status] || STATUS_META.synced;
+export default function LocalSaveBadge({ status }: LocalSaveBadgeProps) {
+    const meta = STATUS_META[status] || STATUS_META.saved;
 
     return (
         <Tooltip title={meta.tooltip}>
             <div className="inline-flex items-center gap-2 cursor-pointer">
                 <span className="relative flex h-2 w-2">
-                    {status === "syncing" && (
+                    {status === "saving" && (
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     )}
                     <span

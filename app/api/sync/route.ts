@@ -1,4 +1,4 @@
-import { Log } from "@/types";
+import { SyncLogPayload } from "@/types";
 import { getWorkItemIds } from "./clients/jira";
 import { createWorklog, updateWorklog, deleteWorklog, getCustomFields } from "./clients/sevenpace";
 import { ParseReturn, parseTime } from "@/lib/time";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    let logs: Log[] = [];
+    let logs: SyncLogPayload[] = [];
     let deletes: string[] = [];
     let date: string | undefined = undefined;
 

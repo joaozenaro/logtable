@@ -11,7 +11,7 @@ import {
     HiddenRows,
     registerPlugin,
 } from "handsontable/plugins";
-import { handsontableTheme } from "@/components/Grid";
+import { handsontableTheme } from "@/lib/handsontableTheme";
 import { registerGridShortcuts } from "@/lib/gridShortcuts";
 import { CheckboxCellType, registerCellType } from "handsontable/cellTypes";
 import { Input, InputAdornment, OutlinedInput, TextField } from "@mui/material";
@@ -26,14 +26,15 @@ registerPlugin(AutoColumnSize);
 registerPlugin(DropdownMenu);
 registerPlugin(HiddenRows);
 
-export type Entry = {
+/** A work item key plus the hint used to recognize it. */
+export type WorkItemHint = {
     key: string;
     description: string;
 };
 
 interface ListEditorProps {
-    items: Entry[];
-    onItemsChange: (items: Entry[]) => void;
+    items: WorkItemHint[];
+    onItemsChange: (items: WorkItemHint[]) => void;
 }
 
 export default function ListEditor({
@@ -51,7 +52,7 @@ export default function ListEditor({
         onItemsChangeRef.current = onItemsChange;
     }, [onItemsChange]);
 
-    const lastCommittedItemsRef = useRef<Entry[]>(items);
+    const lastCommittedItemsRef = useRef<WorkItemHint[]>(items);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -62,7 +63,7 @@ export default function ListEditor({
 
         const commitTableData = (instance: Handsontable) => {
             const sourceData =
-                instance.getSourceData() as Partial<Entry>[];
+                instance.getSourceData() as Partial<WorkItemHint>[];
 
             const nextItems = sourceData
                 .map((item) => ({

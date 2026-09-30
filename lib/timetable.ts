@@ -1,13 +1,13 @@
-import { TimeRow } from "./db";
+import { WorkLogRow } from "./db";
 
 export const MIN_ROWS = 10;
 
 /** The user-editable fields of a row, independent of DB bookkeeping. */
-export type RowFields = Omit<TimeRow, "id" | "order" | "date">;
+export type RowFields = Omit<WorkLogRow, "id" | "order" | "date">;
 
 /** A row as it exists in the grid: editable fields required, DB bookkeeping optional/absent. */
-export type GridRow = RowFields &
-    Partial<Pick<TimeRow, "id" | "order" | "date">>;
+export type EditableWorkLogRow = RowFields &
+    Partial<Pick<WorkLogRow, "id" | "order" | "date">>;
 
 const BLANK_ROW: RowFields = { workItem: "", timeSpent: "", notes: "", description: "" };
 
@@ -46,12 +46,12 @@ export function padToMinRows<T extends RowFields>(
 }
 
 /**
- * Assigns `order` index and `date` to each row and returns TimeRow objects (without `id`).
+ * Assigns `order` index and `date` to each row and returns WorkLogRow objects (without `id`).
  */
 export function withOrder<T extends RowFields>(
     rows: T[],
     date: string,
-): TimeRow[] {
+): WorkLogRow[] {
     return rows.map((r, i) => ({
         workItem: r.workItem ?? "",
         timeSpent: r.timeSpent ?? "",

@@ -1,6 +1,6 @@
 import Dexie, { Table } from "dexie";
 
-export interface TimeRow {
+export interface WorkLogRow {
     id?: number;
     workItem: string;
     timeSpent: string;
@@ -13,7 +13,7 @@ export interface TimeRow {
 }
 
 class TimeDB extends Dexie {
-    rows!: Table<TimeRow, number>;
+    rows!: Table<WorkLogRow, number>;
 
     constructor() {
         super("LogTableDB");

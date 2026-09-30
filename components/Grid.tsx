@@ -26,22 +26,21 @@ import {
 } from "handsontable/validators";
 import { CellChange, ChangeSource, ThemeColorScheme } from "handsontable";
 import Handsontable from "handsontable";
-import { mainTheme, registerTheme } from 'handsontable/themes';
 
 import { calculateTotal } from "@/lib/time";
+import { handsontableTheme } from "@/lib/handsontableTheme";
 import {
     GRID_SHORTCUT_HINTS,
     registerGridShortcuts,
 } from "@/lib/gridShortcuts";
 import { useDayRows } from "@/hooks/useDayRows";
-import SyncStatusBadge from "@/components/SyncStatusBadge";
-import { MIN_ROWS } from "@/lib/timetable";
+import LocalSaveBadge from "@/components/LocalSaveBadge";
+import { MIN_ROWS, type EditableWorkLogRow } from "@/lib/timetable";
 import DOMPurify from "dompurify";
 import { Button, Typography, Box, useColorScheme } from "@mui/material";
 import Shortcut from "./Shortcut";
 import { useToast } from "./ToastProvider";
 import { authClient } from "@/lib/auth-client";
-import type { GridRow } from "@/hooks/useDayRows";
 import { useLocalStorageFlag } from "@/hooks/useLocalStorageFlag";
 
 registerCellType(TextCellType);
@@ -58,15 +57,13 @@ registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
 
-export const handsontableTheme = registerTheme(mainTheme)
-    .setColorScheme('auto');
-
 const TIME_SPENT_COLUMN_INDEX = 1;
 const NOTES_COLUMN_INDEX = 2;
 const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
 
 const NOTES_VISIBLE_KEY = "logtable:notesVisible";
 
+/** Progress event streamed back by POST /api/sync while syncing to 7pace. */
 interface SyncEvent {
     kind: "sync" | "delete";
     index: number;
@@ -87,7 +84,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const isLoadingDataRef = useRef<boolean>(false);
     const { showToast } = useToast();
     const { data: session } = authClient.useSession();
-    const [syncing, setSyncing] = useState(false);
+    const [remoteSyncing, setRemoteSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
     const [notesVisible, setNotesVisible] = useLocalStorageFlag(NOTES_VISIBLE_KEY);
@@ -115,7 +112,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         handsontableTheme.setColorScheme(colorScheme);
     }, [mode, systemMode]);
 
-    const { initialRows, status, notifyChange } = useDayRows(date);
+    const { initialRows, saveStatus, notifyChange } = useDayRows(date);
 
     const updateTotal = () => {
         const hot = hotRef.current?.hotInstance;
@@ -154,18 +151,18 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         }
     };
 
-    const handleSync = async () => {
+    const handleRemoteSync = async () => {
         const hot = hotRef.current?.hotInstance;
         if (!hot) return;
 
         // Collect non-empty rows to create/update, and blank rows that were
         // previously synced to delete remotely.
-        const nonEmptyRows: { physicalRow: number; data: GridRow }[] = [];
+        const nonEmptyRows: { physicalRow: number; data: EditableWorkLogRow }[] = [];
         const deleteRows: { physicalRow: number; remoteId: string }[] = [];
         const count = hot.countRows();
         for (let i = 0; i < count; i++) {
             const physicalRow = hot.toPhysicalRow(i);
-            const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow | null;
+            const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow | null;
             if (rowData?.workItem || rowData?.timeSpent || rowData?.description) {
                 nonEmptyRows.push({ physicalRow, data: rowData });
             } else if (rowData?.remoteId) {
@@ -187,7 +184,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         ]);
         hot.render();
 
-        setSyncing(true);
+        setRemoteSyncing(true);
 
         try {
             const res = await fetch("/api/sync", {
@@ -277,10 +274,10 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
             }
 
             // Persist updated synced/remoteId to IndexedDB
-            const rows: GridRow[] = [];
+            const rows: EditableWorkLogRow[] = [];
             for (let i = 0; i < hot.countRows(); i++) {
                 const physicalIndex = hot.toPhysicalRow(i);
-                const rowData = hot.getSourceDataAtRow(physicalIndex) as GridRow | null;
+                const rowData = hot.getSourceDataAtRow(physicalIndex) as EditableWorkLogRow | null;
                 if (rowData) {
                     rows.push(rowData);
                 }
@@ -304,7 +301,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         } finally {
             pendingSyncRowsRef.current.clear();
             hotRef.current?.hotInstance?.render();
-            setSyncing(false);
+            setRemoteSyncing(false);
         }
     };
 
@@ -330,12 +327,12 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
         // Extract rows from Handsontable
         const count = hot.countRows();
-        const rows: GridRow[] = [];
+        const rows: EditableWorkLogRow[] = [];
         for (let i = 0; i < count; i++) {
             const physicalIndex = hot.toPhysicalRow(i);
             const rowData = hot.getSourceDataAtRow(
                 physicalIndex,
-            ) as GridRow | null;
+            ) as EditableWorkLogRow | null;
             if (rowData) {
                 rows.push(rowData);
             }
@@ -368,8 +365,13 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                         {notesVisible ? "Hide notes" : "Show notes"}
                     </Button>
                     {session && (
-                        <Button variant="outlined" size="small" onClick={handleSync} disabled={syncing}>
-                            {syncing ? "Syncing..." : "Sync"}
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={handleRemoteSync}
+                            disabled={remoteSyncing}
+                        >
+                            {remoteSyncing ? "Syncing..." : "Sync"}
                         </Button>
                     )}
                     <Button variant="outlined" size="small" onClick={copyAsCsv}>
@@ -414,7 +416,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
                         if (hot) {
                             const physicalRow = hot.toPhysicalRow(row);
-                            const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow;
+                            const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow;
                             const hasContent = rowData?.workItem || rowData?.timeSpent || rowData?.description;
 
                             if (hasContent) {
@@ -454,7 +456,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                                     oldValue !== newValue
                                 ) {
                                     const physicalRow = hot.toPhysicalRow(row as number);
-                                    const rowData = hot.getSourceDataAtRow(physicalRow) as GridRow | null;
+                                    const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow | null;
                                     if (rowData?.synced) {
                                         hot.setSourceDataAtCell(physicalRow, "synced", false);
                                     }
@@ -471,7 +473,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 />
             </div>
             <div className="flex justify-between mt-4 px-2 select-none">
-                <SyncStatusBadge status={status} />
+                <LocalSaveBadge status={saveStatus} />
 
                 <div className="flex gap-4">
                     {GRID_SHORTCUT_HINTS.map((shortcut) => (

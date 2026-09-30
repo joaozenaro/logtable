@@ -1,12 +1,9 @@
-export interface TimeEntry {
-    id: number;
+/** A single work log as sent to POST /api/sync. */
+export interface SyncLogPayload {
+    id?: number;
     workItem: string;
     timeSpent: string;
     description: string;
-}
-
-export interface Log extends TimeEntry {
-    workItemId?: number;
     synced?: boolean;
     remoteId?: string;
 }

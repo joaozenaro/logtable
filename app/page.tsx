@@ -5,7 +5,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { useCallback, useMemo, useState } from "react";
 
 import dynamic from "next/dynamic";
-import type { Entry } from "@/components/ListEditor";
+import type { WorkItemHint } from "@/components/ListEditor";
 
 const Calendar = dynamic(() => import("@/components/Calendar"), {
     ssr: false,
@@ -19,7 +19,7 @@ const STORAGE_KEY = "items";
 
 export default function Home() {
     const [day, setDay] = useState<Dayjs | null>(dayjs());
-    const [items, setItems] = useState<Entry[]>(() => {
+    const [items, setItems] = useState<WorkItemHint[]>(() => {
         if (typeof window === "undefined") return [];
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -32,7 +32,7 @@ export default function Home() {
         return [];
     });
 
-    const handleItemsChange = useCallback((next: Entry[]) => {
+    const handleItemsChange = useCallback((next: WorkItemHint[]) => {
         setItems(next);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     }, []);
