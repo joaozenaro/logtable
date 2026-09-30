@@ -1,4 +1,9 @@
-import { SyncLogPayload } from "@/types";
+import {
+    SyncEvent,
+    SyncLogPayload,
+    SyncRequestBody,
+    toSseData,
+} from "@/lib/syncTypes";
 import { getWorkItemIds } from "./clients/jira";
 import {
     createWorklog,
@@ -24,12 +29,13 @@ export async function POST(request: Request) {
         );
     }
 
-    const body = await request.json();
+    const body: SyncRequestBody | SyncLogPayload[] = await request.json();
     let logs: SyncLogPayload[] = [];
     let deletes: string[] = [];
     let date: string | undefined = undefined;
 
     if (Array.isArray(body)) {
+        // Legacy clients sent a bare array of logs, with no deletes and no date.
         logs = body;
     } else if (body && typeof body === "object") {
         logs = body.logs || [];
@@ -68,17 +74,13 @@ export async function POST(request: Request) {
                     const workItemId = workItemMap.get(log.workItem);
 
                     if (!workItemId) {
-                        const event = {
+                        const event: SyncEvent = {
                             kind: "sync",
                             index: i,
                             status: "error",
                             error: `Missing work item ${log.workItem}`,
                         };
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify(event)}\n\n`,
-                            ),
-                        );
+                        controller.enqueue(encoder.encode(toSseData(event)));
                         continue;
                     }
 
@@ -110,29 +112,21 @@ export async function POST(request: Request) {
                         }
 
                         const remoteId = result?.worklog?.id ?? log.remoteId;
-                        const event = {
+                        const event: SyncEvent = {
                             kind: "sync",
                             index: i,
                             status: "synced",
                             remoteId: remoteId ? String(remoteId) : undefined,
                         };
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify(event)}\n\n`,
-                            ),
-                        );
+                        controller.enqueue(encoder.encode(toSseData(event)));
                     } catch (error) {
-                        const event = {
+                        const event: SyncEvent = {
                             kind: "sync",
                             index: i,
                             status: "error",
                             error: String(error),
                         };
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify(event)}\n\n`,
-                            ),
-                        );
+                        controller.enqueue(encoder.encode(toSseData(event)));
                     }
                 }
 
@@ -141,40 +135,30 @@ export async function POST(request: Request) {
 
                     try {
                         await deleteWorklog(remoteId, settings);
-                        const event = {
+                        const event: SyncEvent = {
                             kind: "delete",
                             index: i,
                             status: "deleted",
                         };
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify(event)}\n\n`,
-                            ),
-                        );
+                        controller.enqueue(encoder.encode(toSseData(event)));
                     } catch (error) {
-                        const event = {
+                        const event: SyncEvent = {
                             kind: "delete",
                             index: i,
                             status: "error",
                             error: String(error),
                         };
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify(event)}\n\n`,
-                            ),
-                        );
+                        controller.enqueue(encoder.encode(toSseData(event)));
                     }
                 }
             } catch (error) {
-                const event = {
+                const event: SyncEvent = {
                     kind: "sync",
                     index: -1,
                     status: "error",
                     error: String(error),
                 };
-                controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-                );
+                controller.enqueue(encoder.encode(toSseData(event)));
             } finally {
                 controller.close();
             }

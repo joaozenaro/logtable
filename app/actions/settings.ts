@@ -1,8 +1,8 @@
 "use server";
 
 import "server-only";
-import { cookies, headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { requireAuth } from "@/lib/auth";
 import { encrypt, decrypt } from "@/lib/crypto";
 
 export interface Settings {
@@ -11,16 +11,6 @@ export interface Settings {
     SEVENPACE_TOKEN: string;
     SEVENPACE_BASE_URL: string;
     ASSIGNEE_ID: string;
-}
-
-export async function requireAuth() {
-    const session = await auth.api.getSession({
-        headers: await headers(),
-    });
-
-    if (!session?.user) {
-        throw new Error("Unauthorized");
-    }
 }
 
 export async function saveSettings(formData: FormData) {

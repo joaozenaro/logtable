@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSettings, requireAuth } from "@/app/actions/settings";
+import { requireAuth } from "@/lib/auth";
+import { getSettings } from "@/app/actions/settings";
 
 export async function GET(request: NextRequest) {
     try {

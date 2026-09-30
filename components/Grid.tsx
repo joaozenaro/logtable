@@ -29,6 +29,7 @@ import Handsontable from "handsontable";
 
 import { calculateTotal } from "@/lib/time";
 import { handsontableTheme } from "@/lib/handsontableTheme";
+import type { SyncEvent } from "@/lib/syncTypes";
 import {
     GRID_SHORTCUT_HINTS,
     registerGridShortcuts,
@@ -63,13 +64,14 @@ const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
 
 const NOTES_VISIBLE_KEY = "logtable:notesVisible";
 
-/** Progress event streamed back by POST /api/sync while syncing to 7pace. */
-interface SyncEvent {
-    kind: "sync" | "delete";
-    index: number;
-    status: "synced" | "deleted" | "error";
-    remoteId?: string;
-    error?: string;
+/**
+ * Escapes a single CSV field per RFC 4180: fields containing a comma, a double
+ * quote or a line break are wrapped in quotes, with inner quotes doubled.
+ */
+function escapeCsvField(value: unknown): string {
+    const text = value === null || value === undefined ? "" : String(value);
+
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 interface GridProps {
@@ -143,7 +145,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         const csvData = [COLUMN_TITLES, ...filteredData];
 
         const stringForExport = csvData
-            .map((row) => row.join(","))
+            .map((row) => row.map(escapeCsvField).join(","))
             .join("\r\n");
         if (stringForExport) {
             navigator.clipboard
