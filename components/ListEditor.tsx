@@ -1,16 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Handsontable from "handsontable/base";
+import { CellChange, ChangeSource } from "handsontable";
 import {
-    Typography,
-    IconButton,
-    ListItemText,
-    List,
-    ListItem,
-    TextField,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AddIcon from "@mui/icons-material/Add";
+    AutoColumnSize,
+    ColumnSorting,
+    DropdownMenu,
+    Filters,
+    HiddenRows,
+    registerPlugin,
+} from "handsontable/plugins";
+import { handsontableTheme } from "@/components/Grid";
+import { registerGridShortcuts } from "@/lib/gridShortcuts";
+import { CheckboxCellType, registerCellType } from "handsontable/cellTypes";
+import { Input, InputAdornment, OutlinedInput, TextField } from "@mui/material";
+import SearchIcon from '@mui/icons-material/Search';
+
+registerPlugin(ColumnSorting);
+registerPlugin(Filters);
+
+registerCellType(CheckboxCellType);
+
+registerPlugin(AutoColumnSize);
+registerPlugin(DropdownMenu);
+registerPlugin(HiddenRows);
 
 export type Entry = {
     key: string;
@@ -22,119 +36,225 @@ interface ListEditorProps {
     onItemsChange: (items: Entry[]) => void;
 }
 
-export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
-    const [newKey, setNewKey] = useState("");
-    const [newDesc, setNewDesc] = useState("");
+export default function ListEditor({
+    items,
+    onItemsChange,
+}: ListEditorProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const hotRef = useRef<Handsontable | null>(null);
 
-    const existingKeys = useMemo(
-        () => new Set(items.map((i) => i.key.toLowerCase())),
-        [items],
-    );
+    const [hintFilter, setHintFilter] = useState("");
 
-    const trimmedKey = newKey.trim();
-    const isDuplicate =
-        trimmedKey.length > 0 && existingKeys.has(trimmedKey.toLowerCase());
-    const canAdd = trimmedKey.length > 0 && !isDuplicate;
+    const onItemsChangeRef = useRef(onItemsChange);
 
-    const handleAdd = () => {
-        if (!canAdd) return;
-        onItemsChange([
-            ...items,
-            { key: trimmedKey, description: newDesc.trim() },
-        ]);
-        setNewKey("");
-        setNewDesc("");
-    };
+    useEffect(() => {
+        onItemsChangeRef.current = onItemsChange;
+    }, [onItemsChange]);
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleAdd();
+    const lastCommittedItemsRef = useRef<Entry[]>(items);
+
+    useEffect(() => {
+        const container = containerRef.current;
+
+        if (!container) {
+            return;
         }
-    };
+
+        const commitTableData = (instance: Handsontable) => {
+            const sourceData =
+                instance.getSourceData() as Partial<Entry>[];
+
+            const nextItems = sourceData
+                .map((item) => ({
+                    key: String(item.key ?? "").trim(),
+                    description: String(item.description ?? "").trim(),
+                }))
+                .filter((item) => item.key.length > 0);
+
+            lastCommittedItemsRef.current = nextItems;
+
+            onItemsChangeRef.current(nextItems);
+        };
+
+        const hot = new Handsontable(container, {
+            data: items.map((item) => ({
+                key: item.key,
+                description: item.description,
+            })),
+
+            theme: handsontableTheme,
+
+            width: "100%",
+            height: "auto",
+
+            colHeaders: ["Work Item", "Text hint"],
+            columnSorting: true,
+            filters: true,
+
+            columns: [
+                {
+                    data: "key",
+                    type: "text",
+                },
+                {
+                    data: "description",
+                    type: "text",
+                },
+            ],
+
+            colWidths: [110, 170],
+            stretchH: "last",
+
+            hiddenRows: {
+                indicators: false,
+            },
+
+            licenseKey: "non-commercial-and-evaluation",
+
+            afterChange: function (
+                this: Handsontable,
+                changes: CellChange[] | null,
+                source: ChangeSource,
+            ) {
+                if (
+                    !changes ||
+                    source === "loadData" ||
+                    source === "updateData"
+                ) {
+                    return;
+                }
+
+                commitTableData(this);
+            },
+
+            afterRemoveRow: function (
+                this: Handsontable,
+            ) {
+                commitTableData(this);
+            },
+
+            afterCreateRow: function (
+                this: Handsontable,
+            ) {
+                commitTableData(this);
+            },
+        });
+
+        hotRef.current = hot;
+
+        registerGridShortcuts(hot);
+
+        return () => {
+            hot.destroy();
+            hotRef.current = null;
+        };
+    }, []);
+
+    /*
+     * React -> Handsontable synchronization.
+     */
+    useEffect(() => {
+        const hot = hotRef.current;
+
+        if (!hot) {
+            return;
+        }
+
+        const lastCommitted =
+            lastCommittedItemsRef.current;
+
+        const isSameData =
+            items.length === lastCommitted.length &&
+            items.every(
+                (item, index) =>
+                    item.key === lastCommitted[index]?.key &&
+                    item.description ===
+                    lastCommitted[index]?.description,
+            );
+
+        if (isSameData) {
+            return;
+        }
+
+        const nextData = items.map((item) => ({
+            key: item.key,
+            description: item.description,
+        }));
+
+        lastCommittedItemsRef.current = nextData;
+
+        hot.updateData(nextData);
+    }, [items]);
+
+    /*
+     * Hint filter.
+     *
+     * We don't change the underlying Handsontable data.
+     * We only hide rows whose description doesn't contain
+     * the search text.
+     */
+    useEffect(() => {
+        const hot = hotRef.current;
+
+        if (!hot) {
+            return;
+        }
+
+        const hiddenRows = hot.getPlugin("hiddenRows");
+
+        if (!hiddenRows) {
+            return;
+        }
+
+        const filter = hintFilter.trim().toLowerCase();
+
+        const rowsToHide: number[] = [];
+
+        for (let row = 0; row < hot.countRows(); row++) {
+            const description = String(
+                hot.getDataAtCell(row, 1) ?? "",
+            ).toLowerCase();
+
+            if (filter && !description.includes(filter)) {
+                rowsToHide.push(row);
+            }
+        }
+
+        hiddenRows.showRows(
+            Array.from(
+                { length: hot.countRows() },
+                (_, index) => index,
+            ),
+        );
+
+        if (rowsToHide.length > 0) {
+            hiddenRows.hideRows(rowsToHide);
+        }
+
+        hot.render();
+    }, [hintFilter]);
 
     return (
-        <div className="flex-1 min-h-0 px-4 pb-4 flex flex-col">
-            <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 600, color: "text.secondary", mb: 1 }}
-            >
-                Autocomplete suggestions
-            </Typography>
+        <section className="flex-1 min-h-0 px-4 pb-4 flex flex-col">
+            <OutlinedInput
+                size="small"
+                value={hintFilter}
+                onChange={(event) =>
+                    setHintFilter(event.target.value)
+                }
+                placeholder="Search work items by hint"
+                startAdornment={
+                    <InputAdornment position="start">
+                        <SearchIcon />
+                    </InputAdornment>
+                }
+                className="mb-2"
+            />
 
-            <div className="flex items-end gap-1">
-                <TextField
-                    label="Key"
-                    variant="standard"
-                    size="small"
-                    value={newKey}
-                    onChange={(e) => setNewKey(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    error={isDuplicate}
-                    helperText={isDuplicate ? "Already exists" : undefined}
-                    sx={{ flex: 2 }}
-                />
-                <TextField
-                    label="Hint"
-                    variant="standard"
-                    size="small"
-                    value={newDesc}
-                    onChange={(e) => setNewDesc(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    sx={{ flex: 3 }}
-                />
-                <IconButton
-                    size="small"
-                    onClick={handleAdd}
-                    disabled={!canAdd}
-                    color="primary"
-                >
-                    <AddIcon fontSize="small" />
-                </IconButton>
-            </div>
-
-            <div className="flex-1 min-h-0 mt-1">
-                <List dense className="h-full overflow-y-auto overflow-clip">
-                    {items.map((item, i) => (
-                        <ListItem
-                            key={i}
-                            disableGutters
-                            secondaryAction={
-                                <IconButton
-                                    edge="end"
-                                    aria-label="delete"
-                                    size="small"
-                                    onClick={() =>
-                                        onItemsChange(
-                                            items.filter((_, j) => j !== i),
-                                        )
-                                    }
-                                >
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                            }
-                        >
-                            <ListItemText
-                                primary={item.key}
-                                secondary={item.description || undefined}
-                            />
-                        </ListItem>
-                    ))}
-                    {items.length === 0 && (
-                        <Typography
-                            variant="caption"
-                            sx={{
-                                color: "text.disabled",
-                                display: "block",
-                                mt: 1,
-                                textAlign: "center",
-                            }}
-                        >
-                            No suggestions yet
-                        </Typography>
-                    )}
-                </List>
-            </div>
-        </div>
+            <div
+                ref={containerRef}
+                className="flex-1 min-h-0"
+            />
+        </section>
     );
 }

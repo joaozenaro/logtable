@@ -29,6 +29,10 @@ import Handsontable from "handsontable";
 import { mainTheme, registerTheme } from 'handsontable/themes';
 
 import { calculateTotal } from "@/lib/time";
+import {
+    GRID_SHORTCUT_HINTS,
+    registerGridShortcuts,
+} from "@/lib/gridShortcuts";
 import { useDayRows } from "@/hooks/useDayRows";
 import SyncStatusBadge from "@/components/SyncStatusBadge";
 import { MIN_ROWS } from "@/lib/timetable";
@@ -54,16 +58,9 @@ registerPlugin(ManualRowMove);
 registerPlugin(StretchColumns);
 registerPlugin(UndoRedo);
 
-const theme = registerTheme(mainTheme)
+export const handsontableTheme = registerTheme(mainTheme)
     .setColorScheme('auto');
 
-const SHORTCUTS = [
-    { keys: ["Alt", "Enter"], label: "Open work item" },
-    { keys: ["Ctrl", "Enter"], label: "Add row" },
-    { keys: ["Shift", "⌫"], label: "Delete row" },
-];
-
-const WORK_ITEM_COLUMN_INDEX = 0;
 const TIME_SPENT_COLUMN_INDEX = 1;
 const NOTES_COLUMN_INDEX = 2;
 const COLUMN_TITLES = ["Work Item", "Time Spent", "Notes", "Description"];
@@ -115,7 +112,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
         const colorScheme: ThemeColorScheme = activeMode === "dark" ? "dark" : activeMode === "light" ? "light" : "auto";
-        theme.setColorScheme(colorScheme);
+        handsontableTheme.setColorScheme(colorScheme);
     }, [mode, systemMode]);
 
     const { initialRows, status, notifyChange } = useDayRows(date);
@@ -352,57 +349,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         const hot = hotRef.current?.hotInstance;
         if (!hot || registeredHotRef.current === hot) return;
 
-        const shortcutManager = hot.getShortcutManager();
-        const gridContext = shortcutManager.getContext("grid")!;
-
-        gridContext.addShortcuts([
-            {
-                keys: [["Alt", "Enter"]],
-                group: "customActions",
-                callback: (event) => {
-                    event.preventDefault();
-
-                    const selected = hot.getSelected();
-                    if (!selected) return;
-
-                    const [row] = selected[0];
-                    const key = hot.getDataAtCell(row, WORK_ITEM_COLUMN_INDEX);
-                    if (!key) return;
-
-                    window.open(`/api/redirect-work-item?key=${encodeURIComponent(String(key))}`, "_blank", "noopener,noreferrer");
-                },
-            },
-            {
-                keys: [["Control", "Enter"]],
-                group: "customActions",
-                callback: (event) => {
-                    event.preventDefault();
-                    const newRowIndex = hot.countRows();
-                    hot.alter("insert_row_below", newRowIndex - 1, 1);
-                    hot.selectCell(newRowIndex, 0);
-                },
-            },
-            {
-                keys: [["Shift", "Backspace"]],
-                group: "customActions",
-                callback: (event) => {
-                    event.preventDefault();
-
-                    const selected = hot.getSelectedRangeLast();
-                    if (!selected) return;
-
-                    const rowIndex = selected.from.row ?? 0;
-                    if (rowIndex > 0) hot.alter("remove_row", rowIndex, 1);
-
-                    const newRowCount = hot.countRows();
-                    const nextRow = Math.min(rowIndex, newRowCount - 1);
-
-                    if (nextRow >= 0) {
-                        hot.selectCell(nextRow, 0);
-                    }
-                },
-            },
-        ]);
+        registerGridShortcuts(hot);
         registeredHotRef.current = hot;
     });
 
@@ -433,7 +380,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 <HotTable
-                    theme={theme}
+                    theme={handsontableTheme}
                     ref={hotRef}
                     width="100%"
                     height="auto"
@@ -527,7 +474,7 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 <SyncStatusBadge status={status} />
 
                 <div className="flex gap-4">
-                    {SHORTCUTS.map((shortcut) => (
+                    {GRID_SHORTCUT_HINTS.map((shortcut) => (
                         <Shortcut
                             key={shortcut.label}
                             keys={shortcut.keys}
