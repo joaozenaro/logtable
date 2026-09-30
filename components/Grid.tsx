@@ -12,6 +12,7 @@ import {
 
 import {
     AutocompleteCellType,
+    CheckboxCellType,
     registerCellType,
     TextCellType,
 } from "handsontable/cellTypes";
@@ -63,6 +64,7 @@ import { Button, Typography, Box, useColorScheme } from "@mui/material";
 
 registerCellType(TextCellType);
 registerCellType(AutocompleteCellType);
+registerCellType(CheckboxCellType);
 
 registerEditor(AutocompleteEditor);
 registerRenderer(autocompleteRenderer);

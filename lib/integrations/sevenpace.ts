@@ -33,6 +33,7 @@ export async function getCustomFields(settings: Settings) {
                     id: toggle.id,
                     type: "toggle",
                     value: toggle.default ?? false,
+                    name: toggle.name,
                 });
             }
         }
@@ -64,6 +65,47 @@ export async function getCustomFields(settings: Settings) {
     }
 }
 
+/** Name of the 7pace custom toggle mirrored by the grid's Billable column. */
+export const BILLABLE_FIELD_NAME = "Billable";
+
+/**
+ * Returns a copy of `customFields` with the Billable toggle's value set for
+ * this row. The toggle is matched by name, because its id is per-team.
+ *
+ * If no toggle matches, the fields are returned unchanged: the toggle is
+ * optional, so a team without one should still sync normally.
+ */
+export function withBillableValue(
+    customFields: CustomFieldItem[],
+    billable: boolean,
+): CustomFieldItem[] {
+    return customFields.map((field) =>
+        field.type === "toggle" &&
+        (field.name ?? "").trim().toLowerCase() ===
+            BILLABLE_FIELD_NAME.toLowerCase()
+            ? { ...field, value: billable }
+            : field,
+    );
+}
+
+/** True when the team has a Billable toggle to write to. */
+export function hasBillableField(customFields: CustomFieldItem[]): boolean {
+    return customFields.some(
+        (field) =>
+            field.type === "toggle" &&
+            (field.name ?? "").trim().toLowerCase() ===
+                BILLABLE_FIELD_NAME.toLowerCase(),
+    );
+}
+
+/**
+ * Strips the local-only `name` before sending, so the request body stays
+ * exactly what 7pace expects.
+ */
+function toWireFormat(customFields: CustomFieldItem[]) {
+    return customFields.map(({ id, type, value }) => ({ id, type, value }));
+}
+
 function getStartedAt(date?: string): string {
     let baseDate = new Date();
     if (date) {
@@ -79,6 +121,8 @@ export interface CustomFieldItem {
     id: string;
     type: string;
     value: boolean | { id: string } | unknown;
+    /** Present on fields the API describes; used to find the Billable toggle. */
+    name?: string;
 }
 
 export async function createWorklog(
@@ -97,7 +141,7 @@ export async function createWorklog(
         ...worklogBody,
         assigneeId: settings.ASSIGNEE_ID,
         startedAt,
-        customFields,
+        customFields: toWireFormat(customFields),
     };
 
     const response = await fetch(
@@ -152,7 +196,7 @@ export async function updateWorklog(
         ...worklogBody,
         assigneeId: settings.ASSIGNEE_ID,
         startedAt,
-        customFields,
+        customFields: toWireFormat(customFields),
     };
 
     const response = await fetch(

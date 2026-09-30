@@ -1,6 +1,6 @@
 import type Handsontable from "handsontable/base";
 import type { CellChange } from "handsontable";
-import { isContentField, type EditableWorkLogRow } from "./dayRows";
+import { invalidatesRemoteLog, type EditableWorkLogRow } from "./dayRows";
 
 /** Reads every row of the grid in display order, as stored source data. */
 export function readRows(hot: Handsontable): EditableWorkLogRow[] {
@@ -18,15 +18,17 @@ export function readRows(hot: Handsontable): EditableWorkLogRow[] {
 }
 
 /**
- * Clears the `synced` flag on rows whose content changed, so the next sync
- * updates the remote work log instead of leaving it stale.
+ * Clears the `synced` flag on rows whose synced value changed, so the next
+ * sync updates the remote work log instead of leaving it stale.
  */
 export function markEditedRowsUnsynced(
     hot: Handsontable,
     changes: CellChange[],
 ): void {
     for (const [row, prop, oldValue, newValue] of changes) {
-        if (!isContentField(String(prop)) || oldValue === newValue) continue;
+        if (!invalidatesRemoteLog(String(prop)) || oldValue === newValue) {
+            continue;
+        }
 
         const physicalRow = hot.toPhysicalRow(row as number);
         const rowData = hot.getSourceDataAtRow(

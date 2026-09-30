@@ -77,6 +77,14 @@ export default function Table() {
             align: "right",
             headerAlign: "right",
         },
+        {
+            field: "billable",
+            headerName: "Billable",
+            width: 110,
+            type: "boolean",
+            // Rows saved before the column existed are billable.
+            valueGetter: (value: boolean | undefined) => value ?? true,
+        },
     ];
 
     if (!logs) {

@@ -68,6 +68,8 @@ export function parseBackup(json: unknown): Backup {
             // row to 7pace, but malformed values are dropped.
             synced: typeof raw.synced === "boolean" ? raw.synced : undefined,
             remoteId: asString(raw.remoteId) || undefined,
+            // Absent means the file predates the column, which is billable.
+            billable: typeof raw.billable === "boolean" ? raw.billable : true,
         };
 
         return rowHasContent(row) ? [row] : [];

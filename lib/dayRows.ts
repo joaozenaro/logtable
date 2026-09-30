@@ -10,15 +10,23 @@ export type EditableWorkLogRow = RowFields &
     Partial<Pick<WorkLogRow, "id" | "order" | "date">>;
 
 /**
- * Fields that make a row worth keeping. Editing one of them on a synced row
- * invalidates the remote work log, so the same list drives both the blank-row
- * check and the unsync-on-edit rule.
+ * Fields that make a row worth keeping. A row with none of these is padding
+ * and is not persisted, so `billable` is deliberately absent: ticking the box
+ * on an otherwise empty row should not create a work log.
  */
 const CONTENT_FIELDS = ["workItem", "timeSpent", "description"] as const;
 
-/** True when the field is one of the content-bearing row fields. */
-export function isContentField(prop: string): boolean {
-    return (CONTENT_FIELDS as readonly string[]).includes(prop);
+/**
+ * Fields whose value is sent to 7pace. Editing any of them on a synced row
+ * invalidates the remote work log, so they drive the unsync-on-edit rule. This
+ * is a superset of CONTENT_FIELDS: `billable` alone never justifies a row, but
+ * changing it does change what 7pace stores.
+ */
+const SYNCED_FIELDS = [...CONTENT_FIELDS, "billable"] as const;
+
+/** True when editing this field means the remote work log is now out of date. */
+export function invalidatesRemoteLog(prop: string): boolean {
+    return (SYNCED_FIELDS as readonly string[]).includes(prop);
 }
 
 /** True when the row has anything worth persisting or syncing. */
@@ -33,6 +41,8 @@ const BLANK_ROW: RowFields = {
     timeSpent: "",
     notes: "",
     description: "",
+    // Matches the 7pace toggle's own default, so a fresh row is billable.
+    billable: true,
 };
 
 /**
@@ -65,6 +75,20 @@ export function padToMinRows<T extends RowFields>(
 }
 
 /**
+ * Fills in the `billable` default for rows stored before the column existed.
+ *
+ * The grid renders this column as a checkbox, which treats a missing value as
+ * invalid and shows the text "Invalid value" rather than an empty box. The
+ * default matches the 7pace toggle's own default, so this normalises the
+ * display without changing what any row means.
+ */
+export function withBillableDefault<T extends RowFields>(
+    rows: readonly T[],
+): Array<T & { billable: boolean }> {
+    return rows.map((row) => ({ ...row, billable: row.billable ?? true }));
+}
+
+/**
  * Assigns `order` index and `date` to each row and returns WorkLogRow objects (without `id`).
  */
 export function withOrder<T extends RowFields>(
@@ -78,6 +102,8 @@ export function withOrder<T extends RowFields>(
         description: r.description ?? "",
         synced: r.synced,
         remoteId: r.remoteId,
+        // Undefined means the row predates the field, which is billable.
+        billable: r.billable ?? true,
         order: i,
         date,
     }));

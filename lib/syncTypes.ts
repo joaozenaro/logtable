@@ -6,6 +6,8 @@ export interface SyncLogPayload {
     description: string;
     synced?: boolean;
     remoteId?: string;
+    /** Mirrors the 7pace "Billable" toggle. Omitted means true. */
+    billable?: boolean;
 }
 
 /**

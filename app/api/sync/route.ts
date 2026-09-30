@@ -10,6 +10,8 @@ import {
     updateWorklog,
     deleteWorklog,
     getCustomFields,
+    hasBillableField,
+    withBillableValue,
 } from "@/lib/integrations/sevenpace";
 import { TimeUnit, parseTime } from "@/lib/time";
 import { auth } from "@/lib/auth";
@@ -69,6 +71,13 @@ export async function POST(request: Request) {
                     settings,
                 );
 
+                if (!hasBillableField(customFields)) {
+                    console.warn(
+                        "No enabled 7pace toggle named 'Billable' was found; " +
+                            "the Billable column will not be synced.",
+                    );
+                }
+
                 for (let i = 0; i < logs.length; i++) {
                     const log = logs[i];
                     const workItemId = workItemMap.get(log.workItem);
@@ -95,18 +104,25 @@ export async function POST(request: Request) {
                             date,
                         };
 
+                        // A row with no stored value predates the column and
+                        // is billable, matching the toggle's own default.
+                        const rowCustomFields = withBillableValue(
+                            customFields,
+                            log.billable ?? true,
+                        );
+
                         let result;
                         if (log.remoteId) {
                             result = await updateWorklog(
                                 log.remoteId,
                                 worklogBody,
-                                customFields,
+                                rowCustomFields,
                                 settings,
                             );
                         } else {
                             result = await createWorklog(
                                 worklogBody,
-                                customFields,
+                                rowCustomFields,
                                 settings,
                             );
                         }

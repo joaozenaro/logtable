@@ -6,6 +6,7 @@ import {
     EditableWorkLogRow,
     trimTrailingBlankRows,
     padToMinRows,
+    withBillableDefault,
     withOrder,
     MIN_ROWS,
 } from "@/lib/dayRows";
@@ -181,7 +182,9 @@ export function useDayRows(date: string | null) {
 
                 if (currentGen !== generationRef.current) return;
 
-                const padded = padToMinRows(rows, MIN_ROWS);
+                const padded = withBillableDefault(
+                    padToMinRows(rows, MIN_ROWS),
+                );
                 lastKnownRowsRef.current = padded;
                 loadedDateRef.current = date; // Set loaded date right before updating state
                 setInitialRows(padded);

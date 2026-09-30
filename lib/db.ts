@@ -10,6 +10,12 @@ export interface WorkLogRow {
     date: string; // scoped per day (YYYY-MM-DD format)
     synced?: boolean;
     remoteId?: string;
+    /**
+     * Mirrors the 7pace "Billable" custom toggle. Optional because rows
+     * written before this field existed have no value; callers treat a missing
+     * value as true, matching the toggle's own default.
+     */
+    billable?: boolean;
 }
 
 class TimeDB extends Dexie {
