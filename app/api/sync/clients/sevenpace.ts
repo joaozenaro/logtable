@@ -17,7 +17,7 @@ export async function getCustomFields(settings: Settings) {
                     Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
                     "Content-Type": "application/json",
                 },
-            }
+            },
         );
         if (!response.ok) {
             return [];
@@ -32,7 +32,7 @@ export async function getCustomFields(settings: Settings) {
                 customFields.push({
                     id: toggle.id,
                     type: "toggle",
-                    value: toggle.default ?? false
+                    value: toggle.default ?? false,
                 });
             }
         }
@@ -47,8 +47,8 @@ export async function getCustomFields(settings: Settings) {
                         id: dropdown.id,
                         type: "dropdown",
                         value: {
-                            id: defaultOption.id
-                        }
+                            id: defaultOption.id,
+                        },
                     });
                 }
             }
@@ -56,7 +56,10 @@ export async function getCustomFields(settings: Settings) {
 
         return customFields;
     } catch (error) {
-        console.warn("Failed to fetch custom fields, proceeding without them:", error);
+        console.warn(
+            "Failed to fetch custom fields, proceeding without them:",
+            error,
+        );
         return [];
     }
 }
@@ -69,9 +72,7 @@ function getStartedAt(date?: string): string {
             baseDate = new Date(year, month - 1, day);
         }
     }
-    return new Date(baseDate.setHours(9, 0, 0, 0))
-        .toISOString()
-        .slice(0, 19);
+    return new Date(baseDate.setHours(9, 0, 0, 0)).toISOString().slice(0, 19);
 }
 
 export interface CustomFieldItem {
@@ -86,7 +87,8 @@ export async function createWorklog(
     preFetchedSettings?: Settings,
 ) {
     const settings = preFetchedSettings ?? (await getSettings());
-    const customFields = preFetchedCustomFields ?? (await getCustomFields(settings));
+    const customFields =
+        preFetchedCustomFields ?? (await getCustomFields(settings));
     const startedAt = getStartedAt(body.date);
 
     const { ...worklogBody } = body;
@@ -107,7 +109,7 @@ export async function createWorklog(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
-        }
+        },
     );
 
     if (!response.ok) {
@@ -125,7 +127,7 @@ export async function deleteWorklog(remoteId: string, settings: Settings) {
             headers: {
                 Authorization: `Bearer ${settings.SEVENPACE_TOKEN}`,
             },
-        }
+        },
     );
 
     if (!response.ok) {
@@ -140,7 +142,8 @@ export async function updateWorklog(
     preFetchedSettings?: Settings,
 ) {
     const settings = preFetchedSettings ?? (await getSettings());
-    const customFields = preFetchedCustomFields ?? (await getCustomFields(settings));
+    const customFields =
+        preFetchedCustomFields ?? (await getCustomFields(settings));
     const startedAt = getStartedAt(body.date);
 
     const { ...worklogBody } = body;
@@ -161,7 +164,7 @@ export async function updateWorklog(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
-        }
+        },
     );
 
     if (!response.ok) {

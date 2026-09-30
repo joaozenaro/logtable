@@ -1,9 +1,12 @@
 export enum ParseReturn {
     Minutes,
-    Seconds
+    Seconds,
 }
 
-export function parseTime(timeSpent: string, type: ParseReturn = ParseReturn.Minutes): number {
+export function parseTime(
+    timeSpent: string,
+    type: ParseReturn = ParseReturn.Minutes,
+): number {
     if (!timeSpent) return 0;
 
     const match = timeSpent.match(/^(?:(?<hours>\d+)h)?(?:(?<minutes>\d+)m)?$/);

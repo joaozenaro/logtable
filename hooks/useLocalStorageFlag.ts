@@ -33,7 +33,11 @@ export function useLocalStorageFlag(
 
     const getServerSnapshot = useCallback(() => false, []);
 
-    const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    const value = useSyncExternalStore(
+        subscribe,
+        getSnapshot,
+        getServerSnapshot,
+    );
 
     const setValue = useCallback(
         (next: boolean) => {

@@ -1,10 +1,13 @@
 import type { JiraIssue } from "@/types";
 import { getSettings, Settings } from "@/app/actions/settings";
 
-export async function getWorkItemIds(keys: string[], preFetchedSettings?: Settings) {
+export async function getWorkItemIds(
+    keys: string[],
+    preFetchedSettings?: Settings,
+) {
     if (!keys.length) return new Map<string, number>();
 
-    const settings = preFetchedSettings ?? await getSettings();
+    const settings = preFetchedSettings ?? (await getSettings());
     const encoded = btoa(settings.JIRA_TOKEN);
 
     const response = await fetch(
@@ -16,19 +19,19 @@ export async function getWorkItemIds(keys: string[], preFetchedSettings?: Settin
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                jql: `key IN (${keys.map(k => `'${k}'`).join(",")})`,
+                jql: `key IN (${keys.map((k) => `'${k}'`).join(",")})`,
                 fields: ["id", "key"],
                 maxResults: 100,
             }),
-        }
+        },
     );
 
     const data = await response.json();
 
     return new Map<string, number>(
-        (data.issues as JiraIssue[]).map(issue => [
+        (data.issues as JiraIssue[]).map((issue) => [
             issue.key,
             Number(issue.id),
-        ])
+        ]),
     );
 }

@@ -18,17 +18,24 @@ export async function GET(request: NextRequest) {
     const baseUrl = settings.JIRA_BASE_URL;
 
     if (!baseUrl) {
-        return new NextResponse("Missing Jira Base URL in settings", { status: 400 });
+        return new NextResponse("Missing Jira Base URL in settings", {
+            status: 400,
+        });
     }
 
     try {
         const parsedUrl = new URL(baseUrl);
         if (parsedUrl.protocol !== "https:") {
-            return new NextResponse("Jira Base URL must use HTTPS", { status: 400 });
+            return new NextResponse("Jira Base URL must use HTTPS", {
+                status: 400,
+            });
         }
 
         // Construct URL securely based on parsed domain
-        const url = new URL(`/browse/${encodeURIComponent(key)}`, parsedUrl.origin).toString();
+        const url = new URL(
+            `/browse/${encodeURIComponent(key)}`,
+            parsedUrl.origin,
+        ).toString();
 
         return NextResponse.redirect(url);
     } catch {

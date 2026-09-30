@@ -2,10 +2,14 @@
 
 import { db, WorkLogRow } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
-import { DataGrid, GridColDef, GridSlotsComponentsProps } from "@mui/x-data-grid";
+import {
+    DataGrid,
+    GridColDef,
+    GridSlotsComponentsProps,
+} from "@mui/x-data-grid";
 import { useState } from "react";
 import { calculateTotal } from "@/lib/time";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 
 interface DateFilter {
@@ -13,13 +17,15 @@ interface DateFilter {
     end: string;
 }
 
-declare module '@mui/x-data-grid' {
+declare module "@mui/x-data-grid" {
     interface FooterPropsOverrides {
-        times: string[]
+        times: string[];
     }
 }
 
-function FooterTotalSum(props: NonNullable<GridSlotsComponentsProps['footer']>) {
+function FooterTotalSum(
+    props: NonNullable<GridSlotsComponentsProps["footer"]>,
+) {
     const total = calculateTotal(props.times ?? []);
 
     return (
@@ -27,31 +33,24 @@ function FooterTotalSum(props: NonNullable<GridSlotsComponentsProps['footer']>) 
             <span className="text-sm font-medium text-mui-text-secondary mr-3">
                 Total Time:
             </span>
-            <span className="text-lg font-bold text-mui-primary">
-                {total}
-            </span>
+            <span className="text-lg font-bold text-mui-primary">{total}</span>
         </div>
     );
 }
 
 export default function Table() {
     const [filterDates, setFilterDates] = useState<DateFilter>({
-        start: new Date().toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        start: new Date().toISOString().split("T")[0],
+        end: new Date().toISOString().split("T")[0],
     });
 
     const logs = useLiveQuery(
         () =>
             db.rows
                 .where("date")
-                .between(
-                    filterDates.start,
-                    filterDates.end,
-                    true,
-                    true
-                )
+                .between(filterDates.start, filterDates.end, true, true)
                 .toArray(),
-        [filterDates.start, filterDates.end]
+        [filterDates.start, filterDates.end],
     );
 
     const columns: GridColDef<WorkLogRow>[] = [
@@ -75,8 +74,8 @@ export default function Table() {
             field: "timeSpent",
             headerName: "Time Spent",
             width: 150,
-            align: 'right',
-            headerAlign: 'right',
+            align: "right",
+            headerAlign: "right",
         },
     ];
 
@@ -88,21 +87,29 @@ export default function Table() {
         <div className="flex flex-col h-full items-center px-4">
             <div className="w-full max-w-6xl flex flex-col h-full pt-8 pb-12">
                 <div className="flex items-center justify-between gap-4 mb-6 shrink-0">
-                    <h1 className="text-2xl font-bold">
-                        Work Logs
-                    </h1>
+                    <h1 className="text-2xl font-bold">Work Logs</h1>
                     <div className="flex items-center gap-4">
                         <DatePicker
                             label="Start Date"
                             value={dayjs(filterDates.start)}
-                            onChange={(e) => setFilterDates(prev => ({ start: dayjs(e).format("YYYY-MM-DD"), end: prev.end }))}
-                            slotProps={{ textField: { size: 'small' } }}
+                            onChange={(e) =>
+                                setFilterDates((prev) => ({
+                                    start: dayjs(e).format("YYYY-MM-DD"),
+                                    end: prev.end,
+                                }))
+                            }
+                            slotProps={{ textField: { size: "small" } }}
                         />
                         <DatePicker
                             label="End Date"
                             value={dayjs(filterDates.end)}
-                            onChange={(e) => setFilterDates(prev => ({ start: prev.start, end: dayjs(e).format("YYYY-MM-DD") }))}
-                            slotProps={{ textField: { size: 'small' } }}
+                            onChange={(e) =>
+                                setFilterDates((prev) => ({
+                                    start: prev.start,
+                                    end: dayjs(e).format("YYYY-MM-DD"),
+                                }))
+                            }
+                            slotProps={{ textField: { size: "small" } }}
                         />
                     </div>
                 </div>
@@ -115,7 +122,7 @@ export default function Table() {
                             footer: FooterTotalSum,
                         }}
                         slotProps={{
-                            footer: { times: logs.map(x => x.timeSpent) },
+                            footer: { times: logs.map((x) => x.timeSpent) },
                         }}
                         sx={{ border: 0 }}
                         disableRowSelectionOnClick

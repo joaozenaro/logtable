@@ -15,7 +15,7 @@ import { handsontableTheme } from "@/lib/handsontableTheme";
 import { registerGridShortcuts } from "@/lib/gridShortcuts";
 import { CheckboxCellType, registerCellType } from "handsontable/cellTypes";
 import { Input, InputAdornment, OutlinedInput, TextField } from "@mui/material";
-import SearchIcon from '@mui/icons-material/Search';
+import SearchIcon from "@mui/icons-material/Search";
 
 registerPlugin(ColumnSorting);
 registerPlugin(Filters);
@@ -37,10 +37,7 @@ interface ListEditorProps {
     onItemsChange: (items: WorkItemHint[]) => void;
 }
 
-export default function ListEditor({
-    items,
-    onItemsChange,
-}: ListEditorProps) {
+export default function ListEditor({ items, onItemsChange }: ListEditorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const hotRef = useRef<Handsontable | null>(null);
 
@@ -128,15 +125,11 @@ export default function ListEditor({
                 commitTableData(this);
             },
 
-            afterRemoveRow: function (
-                this: Handsontable,
-            ) {
+            afterRemoveRow: function (this: Handsontable) {
                 commitTableData(this);
             },
 
-            afterCreateRow: function (
-                this: Handsontable,
-            ) {
+            afterCreateRow: function (this: Handsontable) {
                 commitTableData(this);
             },
         });
@@ -161,16 +154,14 @@ export default function ListEditor({
             return;
         }
 
-        const lastCommitted =
-            lastCommittedItemsRef.current;
+        const lastCommitted = lastCommittedItemsRef.current;
 
         const isSameData =
             items.length === lastCommitted.length &&
             items.every(
                 (item, index) =>
                     item.key === lastCommitted[index]?.key &&
-                    item.description ===
-                    lastCommitted[index]?.description,
+                    item.description === lastCommitted[index]?.description,
             );
 
         if (isSameData) {
@@ -222,10 +213,7 @@ export default function ListEditor({
         }
 
         hiddenRows.showRows(
-            Array.from(
-                { length: hot.countRows() },
-                (_, index) => index,
-            ),
+            Array.from({ length: hot.countRows() }, (_, index) => index),
         );
 
         if (rowsToHide.length > 0) {
@@ -240,9 +228,7 @@ export default function ListEditor({
             <OutlinedInput
                 size="small"
                 value={hintFilter}
-                onChange={(event) =>
-                    setHintFilter(event.target.value)
-                }
+                onChange={(event) => setHintFilter(event.target.value)}
                 placeholder="Search work items by hint"
                 startAdornment={
                     <InputAdornment position="start">
@@ -252,10 +238,7 @@ export default function ListEditor({
                 className="mb-2"
             />
 
-            <div
-                ref={containerRef}
-                className="flex-1 min-h-0"
-            />
+            <div ref={containerRef} className="flex-1 min-h-0" />
         </section>
     );
 }

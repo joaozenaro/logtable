@@ -87,7 +87,8 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     const [remoteSyncing, setRemoteSyncing] = useState(false);
     const { mode, systemMode } = useColorScheme();
     const pendingSyncRowsRef = useRef<Set<number>>(new Set());
-    const [notesVisible, setNotesVisible] = useLocalStorageFlag(NOTES_VISIBLE_KEY);
+    const [notesVisible, setNotesVisible] =
+        useLocalStorageFlag(NOTES_VISIBLE_KEY);
 
     const toggleNotes = () => {
         const hot = hotRef.current?.hotInstance;
@@ -108,7 +109,12 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
     useEffect(() => {
         const activeMode = mode === "system" ? systemMode : mode;
-        const colorScheme: ThemeColorScheme = activeMode === "dark" ? "dark" : activeMode === "light" ? "light" : "auto";
+        const colorScheme: ThemeColorScheme =
+            activeMode === "dark"
+                ? "dark"
+                : activeMode === "light"
+                  ? "light"
+                  : "auto";
         handsontableTheme.setColorScheme(colorScheme);
     }, [mode, systemMode]);
 
@@ -157,13 +163,22 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
         // Collect non-empty rows to create/update, and blank rows that were
         // previously synced to delete remotely.
-        const nonEmptyRows: { physicalRow: number; data: EditableWorkLogRow }[] = [];
+        const nonEmptyRows: {
+            physicalRow: number;
+            data: EditableWorkLogRow;
+        }[] = [];
         const deleteRows: { physicalRow: number; remoteId: string }[] = [];
         const count = hot.countRows();
         for (let i = 0; i < count; i++) {
             const physicalRow = hot.toPhysicalRow(i);
-            const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow | null;
-            if (rowData?.workItem || rowData?.timeSpent || rowData?.description) {
+            const rowData = hot.getSourceDataAtRow(
+                physicalRow,
+            ) as EditableWorkLogRow | null;
+            if (
+                rowData?.workItem ||
+                rowData?.timeSpent ||
+                rowData?.description
+            ) {
                 nonEmptyRows.push({ physicalRow, data: rowData });
             } else if (rowData?.remoteId) {
                 deleteRows.push({ physicalRow, remoteId: rowData.remoteId });
@@ -171,7 +186,11 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
         }
 
         if (nonEmptyRows.length === 0 && deleteRows.length === 0) {
-            showToast({ message: "Nothing to do.", severity: "info", duration: 2000 });
+            showToast({
+                message: "Nothing to do.",
+                severity: "info",
+                duration: 2000,
+            });
             return;
         }
 
@@ -179,8 +198,8 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
         // Mark all affected rows as pending
         pendingSyncRowsRef.current = new Set([
-            ...nonEmptyRows.map(r => r.physicalRow),
-            ...deleteRows.map(r => r.physicalRow),
+            ...nonEmptyRows.map((r) => r.physicalRow),
+            ...deleteRows.map((r) => r.physicalRow),
         ]);
         hot.render();
 
@@ -191,8 +210,8 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    logs: nonEmptyRows.map(r => r.data),
-                    deletes: deleteRows.map(r => r.remoteId),
+                    logs: nonEmptyRows.map((r) => r.data),
+                    deletes: deleteRows.map((r) => r.remoteId),
                     date,
                 }),
             });
@@ -232,27 +251,48 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
                     if (event.kind === "delete") {
                         // Skip global errors (index -1)
-                        if (event.index < 0 || event.index >= deleteRows.length) continue;
+                        if (event.index < 0 || event.index >= deleteRows.length)
+                            continue;
                         physicalRow = deleteRows[event.index].physicalRow;
 
                         if (event.status === "deleted") {
                             // getSourceDataAtRow returns a clone, so write through
                             // setSourceDataAtCell to mutate the actual row data.
-                            hot.setSourceDataAtCell(physicalRow, "remoteId", undefined);
-                            hot.setSourceDataAtCell(physicalRow, "synced", false);
+                            hot.setSourceDataAtCell(
+                                physicalRow,
+                                "remoteId",
+                                undefined,
+                            );
+                            hot.setSourceDataAtCell(
+                                physicalRow,
+                                "synced",
+                                false,
+                            );
                             doneCount++;
                         } else {
                             errorCount++;
                         }
                     } else {
                         // Skip global errors (index -1)
-                        if (event.index < 0 || event.index >= nonEmptyRows.length) continue;
+                        if (
+                            event.index < 0 ||
+                            event.index >= nonEmptyRows.length
+                        )
+                            continue;
                         physicalRow = nonEmptyRows[event.index].physicalRow;
 
                         if (event.status === "synced") {
-                            hot.setSourceDataAtCell(physicalRow, "synced", true);
+                            hot.setSourceDataAtCell(
+                                physicalRow,
+                                "synced",
+                                true,
+                            );
                             if (event.remoteId) {
-                                hot.setSourceDataAtCell(physicalRow, "remoteId", event.remoteId);
+                                hot.setSourceDataAtCell(
+                                    physicalRow,
+                                    "remoteId",
+                                    event.remoteId,
+                                );
                             }
                             doneCount++;
                         } else {
@@ -277,7 +317,9 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
             const rows: EditableWorkLogRow[] = [];
             for (let i = 0; i < hot.countRows(); i++) {
                 const physicalIndex = hot.toPhysicalRow(i);
-                const rowData = hot.getSourceDataAtRow(physicalIndex) as EditableWorkLogRow | null;
+                const rowData = hot.getSourceDataAtRow(
+                    physicalIndex,
+                ) as EditableWorkLogRow | null;
                 if (rowData) {
                     rows.push(rowData);
                 }
@@ -353,7 +395,14 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
     return (
         <div className="h-full flex flex-col">
             <div className="flex justify-between py-2">
-                <Typography variant="subtitle2" sx={{ display: "flex", alignItems: "center", color: "text.primary" }}>
+                <Typography
+                    variant="subtitle2"
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        color: "text.primary",
+                    }}
+                >
                     Total:&nbsp;
                     <Box component="span" sx={{ color: "primary.main" }}>
                         {timeSpent}
@@ -361,7 +410,11 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                 </Typography>
 
                 <div className="flex gap-2">
-                    <Button variant="outlined" size="small" onClick={toggleNotes}>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={toggleNotes}
+                    >
                         {notesVisible ? "Hide notes" : "Show notes"}
                     </Button>
                     {session && (
@@ -412,21 +465,28 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
                     stretchH="last"
                     rowHeaders={(row: number) => {
                         const hot = hotRef.current?.hotInstance;
-                        let dotColor = '';
+                        let dotColor = "";
 
                         if (hot) {
                             const physicalRow = hot.toPhysicalRow(row);
-                            const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow;
-                            const hasContent = rowData?.workItem || rowData?.timeSpent || rowData?.description;
+                            const rowData = hot.getSourceDataAtRow(
+                                physicalRow,
+                            ) as EditableWorkLogRow;
+                            const hasContent =
+                                rowData?.workItem ||
+                                rowData?.timeSpent ||
+                                rowData?.description;
 
                             if (hasContent) {
-                                if (pendingSyncRowsRef.current.has(physicalRow)) {
-                                    dotColor = 'bg-yellow-700';
+                                if (
+                                    pendingSyncRowsRef.current.has(physicalRow)
+                                ) {
+                                    dotColor = "bg-yellow-700";
                                 } else if (rowData?.synced) {
-                                    dotColor = 'bg-green-700';
+                                    dotColor = "bg-green-700";
                                 } else if (rowData?.remoteId) {
                                     // Previously synced, edited since - next sync will update it.
-                                    dotColor = 'bg-yellow-700';
+                                    dotColor = "bg-yellow-700";
                                 }
                             }
                         }
@@ -450,15 +510,30 @@ export default function Grid({ date, autocompleteSource = [] }: GridProps) {
 
                         const hot = hotRef.current?.hotInstance;
                         if (hot) {
-                            for (const [row, prop, oldValue, newValue] of changes) {
+                            for (const [
+                                row,
+                                prop,
+                                oldValue,
+                                newValue,
+                            ] of changes) {
                                 if (
-                                    (prop === "workItem" || prop === "timeSpent" || prop === "description") &&
+                                    (prop === "workItem" ||
+                                        prop === "timeSpent" ||
+                                        prop === "description") &&
                                     oldValue !== newValue
                                 ) {
-                                    const physicalRow = hot.toPhysicalRow(row as number);
-                                    const rowData = hot.getSourceDataAtRow(physicalRow) as EditableWorkLogRow | null;
+                                    const physicalRow = hot.toPhysicalRow(
+                                        row as number,
+                                    );
+                                    const rowData = hot.getSourceDataAtRow(
+                                        physicalRow,
+                                    ) as EditableWorkLogRow | null;
                                     if (rowData?.synced) {
-                                        hot.setSourceDataAtCell(physicalRow, "synced", false);
+                                        hot.setSourceDataAtCell(
+                                            physicalRow,
+                                            "synced",
+                                            false,
+                                        );
                                     }
                                 }
                             }

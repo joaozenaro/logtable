@@ -9,7 +9,12 @@ export type RowFields = Omit<WorkLogRow, "id" | "order" | "date">;
 export type EditableWorkLogRow = RowFields &
     Partial<Pick<WorkLogRow, "id" | "order" | "date">>;
 
-const BLANK_ROW: RowFields = { workItem: "", timeSpent: "", notes: "", description: "" };
+const BLANK_ROW: RowFields = {
+    workItem: "",
+    timeSpent: "",
+    notes: "",
+    description: "",
+};
 
 /**
  * Trims trailing rows that are completely blank (empty workItem, timeSpent, and description).

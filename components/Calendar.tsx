@@ -11,9 +11,6 @@ interface CalendarProps {
 
 export default function Calendar({ day, setDay }: CalendarProps) {
     return (
-        <DateCalendar
-            value={day}
-            onChange={(newValue) => setDay(newValue)}
-        />
+        <DateCalendar value={day} onChange={(newValue) => setDay(newValue)} />
     );
 }

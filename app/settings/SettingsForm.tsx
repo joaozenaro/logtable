@@ -14,7 +14,11 @@ export interface SafeSettings {
     hasSevenpaceToken: boolean;
 }
 
-export default function SettingsForm({ initialSettings }: { initialSettings: SafeSettings }) {
+export default function SettingsForm({
+    initialSettings,
+}: {
+    initialSettings: SafeSettings;
+}) {
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
 
@@ -26,14 +30,21 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Saf
             await saveSettings(formData);
             showToast({ message: "Settings saved successfully" });
         } catch {
-            showToast({ message: "Failed to save settings", severity: "error" });
+            showToast({
+                message: "Failed to save settings",
+                severity: "error",
+            });
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
+        <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4"
+            autoComplete="off"
+        >
             <TextField
                 name="JIRA_BASE_URL"
                 label="Jira Base URL"
@@ -44,8 +55,16 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Saf
             />
             <TextField
                 name="JIRA_TOKEN"
-                label={initialSettings.hasJiraToken ? "Jira Token (email:token) - Saved ✓" : "Jira Token (email:token)"}
-                placeholder={initialSettings.hasJiraToken ? "Leave blank to keep existing token" : ""}
+                label={
+                    initialSettings.hasJiraToken
+                        ? "Jira Token (email:token) - Saved ✓"
+                        : "Jira Token (email:token)"
+                }
+                placeholder={
+                    initialSettings.hasJiraToken
+                        ? "Leave blank to keep existing token"
+                        : ""
+                }
                 type="password"
                 autoComplete="new-password"
                 fullWidth
@@ -60,8 +79,16 @@ export default function SettingsForm({ initialSettings }: { initialSettings: Saf
             />
             <TextField
                 name="SEVENPACE_TOKEN"
-                label={initialSettings.hasSevenpaceToken ? "7pace Token - Saved ✓" : "7pace Token"}
-                placeholder={initialSettings.hasSevenpaceToken ? "Leave blank to keep existing token" : ""}
+                label={
+                    initialSettings.hasSevenpaceToken
+                        ? "7pace Token - Saved ✓"
+                        : "7pace Token"
+                }
+                placeholder={
+                    initialSettings.hasSevenpaceToken
+                        ? "Leave blank to keep existing token"
+                        : ""
+                }
                 type="password"
                 autoComplete="new-password"
                 fullWidth

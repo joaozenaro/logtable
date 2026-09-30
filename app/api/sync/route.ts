@@ -1,6 +1,11 @@
 import { SyncLogPayload } from "@/types";
 import { getWorkItemIds } from "./clients/jira";
-import { createWorklog, updateWorklog, deleteWorklog, getCustomFields } from "./clients/sevenpace";
+import {
+    createWorklog,
+    updateWorklog,
+    deleteWorklog,
+    getCustomFields,
+} from "./clients/sevenpace";
 import { ParseReturn, parseTime } from "@/lib/time";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -35,9 +40,12 @@ export async function POST(request: Request) {
     const encoder = new TextEncoder();
 
     const settings = await getSettings();
-    const hasSettings = settings.JIRA_TOKEN && settings.JIRA_BASE_URL
-        && settings.SEVENPACE_TOKEN && settings.SEVENPACE_BASE_URL
-        && settings.ASSIGNEE_ID;
+    const hasSettings =
+        settings.JIRA_TOKEN &&
+        settings.JIRA_BASE_URL &&
+        settings.SEVENPACE_TOKEN &&
+        settings.SEVENPACE_BASE_URL &&
+        settings.ASSIGNEE_ID;
 
     if (!hasSettings) {
         return NextResponse.json(
@@ -51,7 +59,7 @@ export async function POST(request: Request) {
             try {
                 const customFields = await getCustomFields(settings);
                 const workItemMap = await getWorkItemIds(
-                    [...new Set(logs.map(l => l.workItem))],
+                    [...new Set(logs.map((l) => l.workItem))],
                     settings,
                 );
 
@@ -60,32 +68,71 @@ export async function POST(request: Request) {
                     const workItemId = workItemMap.get(log.workItem);
 
                     if (!workItemId) {
-                        const event = { kind: "sync", index: i, status: "error", error: `Missing work item ${log.workItem}` };
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                        const event = {
+                            kind: "sync",
+                            index: i,
+                            status: "error",
+                            error: `Missing work item ${log.workItem}`,
+                        };
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify(event)}\n\n`,
+                            ),
+                        );
                         continue;
                     }
 
                     try {
                         const worklogBody = {
                             comment: log.description,
-                            duration: parseTime(log.timeSpent, ParseReturn.Seconds).toString(),
+                            duration: parseTime(
+                                log.timeSpent,
+                                ParseReturn.Seconds,
+                            ).toString(),
                             externalItemId: String(workItemId),
                             date,
                         };
 
                         let result;
                         if (log.remoteId) {
-                            result = await updateWorklog(log.remoteId, worklogBody, customFields, settings);
+                            result = await updateWorklog(
+                                log.remoteId,
+                                worklogBody,
+                                customFields,
+                                settings,
+                            );
                         } else {
-                            result = await createWorklog(worklogBody, customFields, settings);
+                            result = await createWorklog(
+                                worklogBody,
+                                customFields,
+                                settings,
+                            );
                         }
 
                         const remoteId = result?.worklog?.id ?? log.remoteId;
-                        const event = { kind: "sync", index: i, status: "synced", remoteId: remoteId ? String(remoteId) : undefined };
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                        const event = {
+                            kind: "sync",
+                            index: i,
+                            status: "synced",
+                            remoteId: remoteId ? String(remoteId) : undefined,
+                        };
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify(event)}\n\n`,
+                            ),
+                        );
                     } catch (error) {
-                        const event = { kind: "sync", index: i, status: "error", error: String(error) };
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                        const event = {
+                            kind: "sync",
+                            index: i,
+                            status: "error",
+                            error: String(error),
+                        };
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify(event)}\n\n`,
+                            ),
+                        );
                     }
                 }
 
@@ -94,16 +141,40 @@ export async function POST(request: Request) {
 
                     try {
                         await deleteWorklog(remoteId, settings);
-                        const event = { kind: "delete", index: i, status: "deleted" };
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                        const event = {
+                            kind: "delete",
+                            index: i,
+                            status: "deleted",
+                        };
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify(event)}\n\n`,
+                            ),
+                        );
                     } catch (error) {
-                        const event = { kind: "delete", index: i, status: "error", error: String(error) };
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                        const event = {
+                            kind: "delete",
+                            index: i,
+                            status: "error",
+                            error: String(error),
+                        };
+                        controller.enqueue(
+                            encoder.encode(
+                                `data: ${JSON.stringify(event)}\n\n`,
+                            ),
+                        );
                     }
                 }
             } catch (error) {
-                const event = { kind: "sync", index: -1, status: "error", error: String(error) };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+                const event = {
+                    kind: "sync",
+                    index: -1,
+                    status: "error",
+                    error: String(error),
+                };
+                controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+                );
             } finally {
                 controller.close();
             }
@@ -114,7 +185,7 @@ export async function POST(request: Request) {
         headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
         },
     });
 }

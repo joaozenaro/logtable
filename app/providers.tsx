@@ -9,7 +9,7 @@ import { ToastProvider } from "@/components/ToastProvider";
 
 const theme = createTheme({
     cssVariables: {
-        colorSchemeSelector: 'class'
+        colorSchemeSelector: "class",
     },
     colorSchemes: { light: true, dark: true },
 });
