@@ -17,6 +17,9 @@ export default function Header() {
                 <Link href="/table" className="hover:underline">
                     Table
                 </Link>
+                <Link href="/backup" className="hover:underline">
+                    Export / Import
+                </Link>
                 {session && (
                     <Link href="/settings" className="hover:underline">
                         Settings
