@@ -1,23 +1,12 @@
-# Worklog Table
+# Logtable
 
-Work log management application built with a local-first, spreadsheet-like user experience.
+Local only, spreadsheet-like jira work log manager.
+
+Next.js . Better Auth + Github OAuth . MUI . Dexie . Handsontable
 
 ## Constraints
 
-- Total budget: $0
-- Local-first design with fast, responsive UI
-- Spreadsheet-like experience:
-    - 90% of user interaction focused on fast editing, 10% on viewing
-    - Moving individual or multiple rows together is seamless
-- Keyboard-friendly navigation and custom shortcuts
-
-## Tech Stack
-
-- Core Framework: Next.js + React
-- Authentication: Better Auth (with GitHub OAuth)
-- Data Grid: Handsontable
-- Local Database: Dexie (IndexedDB)
-- UI Components: Material UI + MUI X Date Pickers
+Budget: $0
 
 ## Progress & Roadmap
 
